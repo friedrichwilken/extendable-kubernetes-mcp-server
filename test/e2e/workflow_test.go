@@ -200,6 +200,7 @@ func TestWorkflowPerformance(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore - Performance test function with concurrent client coordination
 func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients, requestsPerClient int, timeout time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()

@@ -150,7 +150,7 @@ jobs:
 
       - name: Detect code complexity issues
         run: |
-          go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+          go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
           # Check for functions with cyclomatic complexity > 10
           if [ "$(gocyclo -over 10 .)" != "" ]; then
             echo "The following functions have high cyclomatic complexity:"
@@ -178,12 +178,12 @@ jobs:
 
       - name: Run govulncheck (Go vulnerability scanner)
         run: |
-          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
           govulncheck ./...
 
       - name: Generate software bill of materials (SBOM)
         run: |
-          go install github.com/anchore/syft/cmd/syft@latest
+          go install github.com/anchore/syft/cmd/syft@v1.38.0
           syft packages . -o spdx-json=sbom.spdx.json
           syft packages . -o table=sbom.txt
 

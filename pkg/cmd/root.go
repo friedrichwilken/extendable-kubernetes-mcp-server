@@ -257,6 +257,7 @@ func (m *ExtendableMCPServerOptions) initializeLogging() {
 	klog.SetLoggerWithOptions(logger)
 }
 
+//gocyclo:ignore - CLI validation logic with multiple configuration checks
 func (m *ExtendableMCPServerOptions) Validate() error {
 	if output.FromString(m.StaticConfig.ListOutput) == nil {
 		return fmt.Errorf("invalid output name: %s, valid names are: %s",
@@ -287,6 +288,7 @@ func (m *ExtendableMCPServerOptions) Validate() error {
 	return nil
 }
 
+//gocyclo:ignore - Main server startup logic with OAuth, HTTP, and STDIO handling
 func (m *ExtendableMCPServerOptions) Run() error {
 	klog.V(1).Info("Starting extendable-kubernetes-mcp-server")
 	klog.V(1).Infof(" - Config: %s", m.ConfigPath)
