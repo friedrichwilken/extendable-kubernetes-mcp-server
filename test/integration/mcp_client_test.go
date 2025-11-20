@@ -240,7 +240,7 @@ func testHTTPMCPEndpoints(t *testing.T, baseURL string) {
 		t.Logf("MCP endpoint not accessible: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Should respond with some status (might be 400 for GET request on POST endpoint)
 	assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,
@@ -256,7 +256,7 @@ func testHTTPMCPEndpoints(t *testing.T, baseURL string) {
 		t.Logf("POST to MCP endpoint failed: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Should get some response
 	assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,
@@ -279,7 +279,7 @@ func testSSEEndpoint(t *testing.T, baseURL string) {
 		t.Logf("SSE endpoint not accessible: %v", err)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// SSE endpoint should respond
 	assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,

@@ -274,6 +274,7 @@ func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients,
 	totalRequests := concurrentClients * requestsPerClient
 	responseTimes := make([]time.Duration, 0, totalRequests)
 
+collectLoop:
 	for i := 0; i < totalRequests; i++ {
 		select {
 		case result := <-results:
@@ -285,7 +286,7 @@ func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients,
 			}
 		case <-ctx.Done():
 			t.Logf("Test timed out after %v", timeout)
-			break
+			break collectLoop
 		}
 	}
 

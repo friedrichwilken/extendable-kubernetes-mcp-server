@@ -73,11 +73,10 @@ func TestServerStartupStdio(t *testing.T) {
 	}()
 
 	select {
-	case err = <-done:
+	case <-done:
 		// Read completed
 	case <-time.After(5 * time.Second):
 		// Timeout - this is acceptable
-		err = nil
 	}
 
 	// Server should either respond or close gracefully
@@ -99,7 +98,7 @@ func TestServerStartupHTTP(t *testing.T) {
 
 	// Start server in HTTP mode
 	cmd := exec.Command(serverPath, "--port", port, "--log-level", "0")
-	cmd.Env = append(os.Environ())
+	cmd.Env = os.Environ()
 
 	stderr, err := cmd.StderrPipe()
 	require.NoError(t, err, "Failed to create stderr pipe")
@@ -125,7 +124,7 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Test basic HTTP endpoints
 	resp, err := http.Get(serverURL + "/health")
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 404,
 			"Health endpoint should return 200 or 404, got %d", resp.StatusCode)
 	}
@@ -133,7 +132,7 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Test MCP endpoint exists
 	resp, err = http.Get(serverURL + "/mcp")
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		// Should get some response (might be 400 for invalid request, but server should respond)
 		assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,
 			"MCP endpoint should be available, got status %d", resp.StatusCode)
@@ -312,7 +311,7 @@ func waitForHTTPServer(url string, timeout time.Duration) error {
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(url)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil
 		}
 

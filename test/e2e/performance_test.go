@@ -197,7 +197,7 @@ func testConcurrentClientLoad(t *testing.T, serverPath string, numClients int) {
 				resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
 
 				if err == nil {
-					resp.Body.Close()
+					_ = resp.Body.Close()
 					if resp.StatusCode >= 200 && resp.StatusCode < 500 {
 						successCount++
 					}
@@ -226,11 +226,9 @@ func testConcurrentClientLoad(t *testing.T, serverPath string, numClients int) {
 	// Collect and analyze results
 	totalRequests := 0
 	successfulClients := 0
-	clientDurations := make([]time.Duration, 0, numClients)
 
 	for result := range results {
 		totalRequests += result.requests
-		clientDurations = append(clientDurations, result.duration)
 		if result.success {
 			successfulClients++
 		}
@@ -355,7 +353,7 @@ func waitForHTTPServer(url string, timeout time.Duration) error {
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(url)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil
 		}
 

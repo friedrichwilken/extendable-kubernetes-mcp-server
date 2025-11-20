@@ -27,14 +27,14 @@ func Must[T any](v T, err error) T {
 func ReadFile(path ...string) string {
 	_, file, _, _ := runtime.Caller(1)
 	filePath := filepath.Join(append([]string{filepath.Dir(file)}, path...)...)
-	fileBytes := Must(os.ReadFile(filePath))
+	fileBytes := Must(os.ReadFile(filePath)) // #nosec G304 -- test helper for reading test fixtures
 	return string(fileBytes)
 }
 
 // RandomPortAddress finds a random available TCP port.
 // Returns a TCPAddr that can be used for test servers.
 func RandomPortAddress() (*net.TCPAddr, error) {
-	ln, err := net.Listen("tcp", "0.0.0.0:0")
+	ln, err := net.Listen("tcp", "0.0.0.0:0") // #nosec G102 -- binding to all interfaces for test port allocation
 	if err != nil {
 		return nil, fmt.Errorf("failed to find random port for HTTP server: %v", err)
 	}
@@ -84,7 +84,7 @@ func TempDir(t *testing.T) string {
 // Returns the full path to the created file.
 func WriteTestFile(t *testing.T, dir, filename, content string) string {
 	path := filepath.Join(dir, filename)
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("Failed to write test file %s: %v", path, err)
 	}
 	return path

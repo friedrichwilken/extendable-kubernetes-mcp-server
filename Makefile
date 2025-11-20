@@ -42,7 +42,7 @@ clean:
 	@echo "Clean completed"
 
 # Run all tests
-test:
+test: lint
 	@echo "Running all tests..."
 	$(GOTEST) $(TEST_FLAGS) ./...
 

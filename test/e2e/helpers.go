@@ -21,10 +21,11 @@ func tempDir(tb testing.TB) string {
 	require.NoError(tb, err)
 
 	// Register cleanup
-	if t, ok := tb.(*testing.T); ok {
-		t.Cleanup(func() { _ = os.RemoveAll(dir) })
-	} else if b, ok := tb.(*testing.B); ok {
-		b.Cleanup(func() { _ = os.RemoveAll(dir) })
+	switch v := tb.(type) {
+	case *testing.T:
+		v.Cleanup(func() { _ = os.RemoveAll(dir) })
+	case *testing.B:
+		v.Cleanup(func() { _ = os.RemoveAll(dir) })
 	}
 
 	return dir
@@ -34,8 +35,11 @@ func buildServerBinary(tb testing.TB) string {
 	tempDirectory := tempDir(tb)
 	serverPath := tempDirectory + "/test-e2e-server"
 
-	buildCmd := exec.Command("go", "build", "-o", serverPath, "./cmd")
-	buildCmd.Dir = "/Users/I549741/claude-playroom/extendable-kubernetes-mcp-server"
+	buildCmd := exec.Command("go", "build", "-o", serverPath, "./cmd") // #nosec G204 -- controlled paths for testing
+	// Use current working directory instead of hardcoded path
+	cwd, err := os.Getwd()
+	require.NoError(tb, err, "Failed to get current working directory")
+	buildCmd.Dir = cwd
 
 	output, err := buildCmd.CombinedOutput()
 	require.NoError(tb, err, "Failed to build server binary: %s", string(output))
@@ -43,14 +47,15 @@ func buildServerBinary(tb testing.TB) string {
 	return serverPath
 }
 
-func startServerWithPipes(tb testing.TB, cmd *exec.Cmd) (io.WriteCloser, io.ReadCloser, io.ReadCloser) {
-	stdin, err := cmd.StdinPipe()
+func startServerWithPipes(tb testing.TB, cmd *exec.Cmd) (stdin io.WriteCloser, stdout, stderr io.ReadCloser) {
+	var err error
+	stdin, err = cmd.StdinPipe()
 	require.NoError(tb, err, "Failed to create stdin pipe")
 
-	stdout, err := cmd.StdoutPipe()
+	stdout, err = cmd.StdoutPipe()
 	require.NoError(tb, err, "Failed to create stdout pipe")
 
-	stderr, err := cmd.StderrPipe()
+	stderr, err = cmd.StderrPipe()
 	require.NoError(tb, err, "Failed to create stderr pipe")
 
 	err = cmd.Start()
@@ -62,7 +67,7 @@ func startServerWithPipes(tb testing.TB, cmd *exec.Cmd) (io.WriteCloser, io.Read
 	return stdin, stdout, stderr
 }
 
-func sendJSONRPCRequest(tb testing.TB, writer io.Writer, request map[string]any) error {
+func sendJSONRPCRequest(_ testing.TB, writer io.Writer, request map[string]any) error {
 	requestBytes, err := json.Marshal(request)
 	if err != nil {
 		return err

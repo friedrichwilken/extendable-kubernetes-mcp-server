@@ -70,17 +70,15 @@ func TestCLICompatibility(t *testing.T) {
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected error for args: %v", tt.args)
-			} else {
+			} else if tt.name != "help flag" {
 				// Note: --help may return an error in some Cobra versions, this is normal
-				if tt.name != "help flag" {
-					assert.NoError(t, err, "Unexpected error for args: %v", tt.args)
-				}
+				assert.NoError(t, err, "Unexpected error for args: %v", tt.args)
 			}
 
 			// Check output contains expected strings
 			output := stdout.String() + stderr.String()
 			t.Logf("Captured output length: %d", len(output))
-			if len(output) > 0 && len(output) < 200 {
+			if output != "" && len(output) < 200 {
 				t.Logf("Output: '%s'", output)
 			}
 
@@ -226,7 +224,7 @@ func TestHelpOutput(t *testing.T) {
 
 	// If we didn't capture the output properly, help might still be printed to console
 	// but we can verify the command structure is correct
-	if len(helpText) == 0 {
+	if helpText == "" {
 		t.Skip("Help output not captured properly - this may be a test infrastructure issue")
 	}
 

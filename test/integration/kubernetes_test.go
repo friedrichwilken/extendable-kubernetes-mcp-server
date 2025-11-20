@@ -90,8 +90,8 @@ func testBasicClientOperations(t *testing.T, cfg *rest.Config) {
 
 	// Verify common resources exist
 	resourceNames := make([]string, len(resources.APIResources))
-	for i, resource := range resources.APIResources {
-		resourceNames[i] = resource.Name
+	for i := range resources.APIResources {
+		resourceNames[i] = resources.APIResources[i].Name
 	}
 
 	expectedResources := []string{"pods", "services", "namespaces", "configmaps", "secrets"}
@@ -129,8 +129,8 @@ func testNamespaceOperations(t *testing.T, cfg *rest.Config) {
 
 	// Find our test namespace
 	found := false
-	for _, ns := range namespaces.Items {
-		if ns.Name == testNS.Name {
+	for i := range namespaces.Items {
+		if namespaces.Items[i].Name == testNS.Name {
 			found = true
 			break
 		}
