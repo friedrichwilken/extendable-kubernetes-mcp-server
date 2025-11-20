@@ -56,11 +56,6 @@ jobs:
       with:
         sarif_file: gosec-results.sarif
 
-    - name: Run govulncheck
-      run: |
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
-
     - name: Upload Gosec results as artifact
       uses: actions/upload-artifact@v4
       if: always()
@@ -211,10 +206,10 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Run Nancy (Sonatype dependency scanner)
+    - name: Run govulncheck (Go vulnerability scanner)
       run: |
-        go install github.com/sonatypecommunity/nancy@latest
-        go list -json -deps ./... | nancy sleuth
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
 
     - name: Generate software bill of materials (SBOM)
       run: |
