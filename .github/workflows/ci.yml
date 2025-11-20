@@ -83,7 +83,9 @@ jobs:
       run: make setup-envtest
 
     - name: Run integration tests
-      run: make test-integration
+      run: |
+        source test/envtest/env.sh
+        make test-integration
 
     - name: Upload integration test results
       uses: actions/upload-artifact@v4

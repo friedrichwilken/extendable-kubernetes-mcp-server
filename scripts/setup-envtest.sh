@@ -9,8 +9,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Configuration
-ENVTEST_K8S_VERSION="1.28.0"
-SETUP_ENVTEST_VERSION="v0.15.0"
+ENVTEST_K8S_VERSION="1.30.0"
+SETUP_ENVTEST_VERSION="latest"
 
 # Setup directories
 ENVTEST_DIR="${PROJECT_ROOT}/test/envtest"
