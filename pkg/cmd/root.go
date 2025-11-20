@@ -269,8 +269,8 @@ func (m *ExtendableMCPServerOptions) Validate() error {
 	if !m.StaticConfig.RequireOAuth && (m.StaticConfig.ValidateToken ||
 		m.StaticConfig.OAuthAudience != "" || m.StaticConfig.AuthorizationURL != "" ||
 		m.StaticConfig.ServerURL != "" || m.StaticConfig.CertificateAuthority != "") {
-		return fmt.Errorf("validate-token, oauth-audience, authorization-url, server-url and "+
-			"certificate-authority are only valid if require-oauth is enabled. "+
+		return fmt.Errorf("validate-token, oauth-audience, authorization-url, server-url and " +
+			"certificate-authority are only valid if require-oauth is enabled. " +
 			"Missing --port may implicitly set require-oauth to false")
 	}
 	if m.StaticConfig.AuthorizationURL != "" {
