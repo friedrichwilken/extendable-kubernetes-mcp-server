@@ -330,6 +330,7 @@ func testEdgeCases(t *testing.T, serverURL string) {
 }
 
 // TestLongRunningSession simulates a long-running MCP session
+//
 //gocyclo:ignore - Long-running test function with multiple phases and error handling
 func TestLongRunningSession(t *testing.T) {
 	if testing.Short() {
