@@ -23,8 +23,14 @@ func TestCompleteWorkflowStdio(t *testing.T) {
 	// Build the server binary
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in stdio mode
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 
 	stdin, err := cmd.StdinPipe()
 	require.NoError(t, err, "Failed to create stdin pipe")
@@ -205,8 +211,14 @@ func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients,
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	stdin, stdout, stderr := startServerWithPipes(t, cmd)
 	defer func() {
 		if cmd.Process != nil {

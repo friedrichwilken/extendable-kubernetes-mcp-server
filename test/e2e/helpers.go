@@ -4,10 +4,13 @@ package e2e
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"syscall"
 	"testing"
 	"time"
 
@@ -88,10 +91,68 @@ func startServerWithPipes(tb testing.TB, cmd *exec.Cmd) (stdin io.WriteCloser, s
 	err = cmd.Start()
 	require.NoError(tb, err, "Failed to start server")
 
-	// Give server time to start
-	time.Sleep(200 * time.Millisecond)
+	// Wait for server to start and validate it's still running
+	// This helps catch early exits that cause "broken pipe" errors
+	time.Sleep(500 * time.Millisecond)
+
+	// Check if the process is still alive by sending it signal 0
+	// This works cross-platform and doesn't actually send a signal
+	if cmd.Process != nil {
+		if err := cmd.Process.Signal(syscall.Signal(0)); err != nil {
+			tb.Logf("Server process is not running, it may have exited early: %v", err)
+			// Don't fail immediately, let the test try to continue
+			// The actual communication failure will be caught in the test
+		}
+	}
 
 	return stdin, stdout, stderr
+}
+
+// createTestKubeconfig creates a test kubeconfig file for CI testing
+func createTestKubeconfig(tb testing.TB, tempDir string, clusters map[string]string, currentContext string) string {
+	kubeconfigPath := filepath.Join(tempDir, "kubeconfig")
+
+	// Build clusters section
+	clustersYAML := []string{}
+	contextsYAML := []string{}
+	usersYAML := []string{}
+
+	for name, server := range clusters {
+		clustersYAML = append(clustersYAML, fmt.Sprintf(`- cluster:
+    server: %s
+    insecure-skip-tls-verify: true
+  name: %s`, server, name))
+
+		contextsYAML = append(contextsYAML, fmt.Sprintf(`- context:
+    cluster: %s
+    user: %s-user
+  name: %s`, name, name, name))
+
+		usersYAML = append(usersYAML, fmt.Sprintf(`- name: %s-user
+  user:
+    token: test-token-%s`, name, name))
+	}
+
+	kubeconfigContent := fmt.Sprintf(`apiVersion: v1
+kind: Config
+clusters:
+%s
+contexts:
+%s
+current-context: %s
+users:
+%s
+`, strings.Join(clustersYAML, "\n"),
+		strings.Join(contextsYAML, "\n"),
+		currentContext,
+		strings.Join(usersYAML, "\n"))
+
+	err := os.WriteFile(kubeconfigPath, []byte(kubeconfigContent), 0o600)
+	if err != nil {
+		tb.Fatalf("Failed to create test kubeconfig: %v", err)
+	}
+
+	return kubeconfigPath
 }
 
 func sendJSONRPCRequest(_ testing.TB, writer io.Writer, request map[string]any) error {

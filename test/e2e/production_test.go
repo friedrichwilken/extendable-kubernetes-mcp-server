@@ -26,6 +26,12 @@ func TestProductionWorkflow(t *testing.T) {
 
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Use HTTP transport for production-like testing
 	addr, err := utils.RandomPortAddress()
 	require.NoError(t, err)
@@ -33,6 +39,7 @@ func TestProductionWorkflow(t *testing.T) {
 
 	// Start server with production-like settings
 	cmd := exec.Command(serverPath,
+		"--kubeconfig", kubeconfigPath,
 		"--port", port,
 		"--log-level", "2", // Moderate logging for production
 		"--read-only", // Safe mode for production
@@ -339,8 +346,14 @@ func TestLongRunningSession(t *testing.T) {
 
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in stdio mode for long-running test
-	cmd := exec.Command(serverPath, "--log-level", "1")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "1")
 	stdin, stdout, stderr := startServerWithPipes(t, cmd)
 	defer func() {
 		_ = cmd.Process.Kill()
@@ -530,3 +543,4 @@ func simulateInvalidRequest(client *http.Client, serverURL string, requestID int
 	// Success means server handled invalid request gracefully (returned error response)
 	return resp.StatusCode >= 200 && resp.StatusCode < 500
 }
+

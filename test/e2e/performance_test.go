@@ -23,11 +23,17 @@ import (
 func BenchmarkMCPInitialization(b *testing.B) {
 	serverPath := buildServerBinary(b)
 
+	// Create test kubeconfig for the server
+	tempDir := tempDir(b)
+	kubeconfigPath := createTestKubeconfig(b, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		// Start server
-		cmd := exec.Command(serverPath, "--log-level", "0")
+		cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 		stdin, stdout, stderr := startServerWithPipes(b, cmd)
 
 		// Initialize
@@ -64,8 +70,14 @@ func BenchmarkMCPInitialization(b *testing.B) {
 func BenchmarkToolsList(b *testing.B) {
 	serverPath := buildServerBinary(b)
 
+	// Create test kubeconfig for the server
+	tempDir := tempDir(b)
+	kubeconfigPath := createTestKubeconfig(b, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server once for all benchmark iterations
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	stdin, stdout, stderr := startServerWithPipes(b, cmd)
 	defer func() {
 		_ = cmd.Process.Kill()
@@ -148,8 +160,14 @@ func testConcurrentClientLoad(t *testing.T, serverPath string, numClients int) {
 	require.NoError(t, err)
 	port := fmt.Sprintf("%d", addr.Port)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start HTTP server
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "0")
 	err = cmd.Start()
 	require.NoError(t, err)
 
@@ -268,8 +286,14 @@ func TestMemoryUsageStability(t *testing.T) {
 
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	stdin, stdout, stderr := startServerWithPipes(t, cmd)
 	defer func() {
 		_ = cmd.Process.Kill()
@@ -367,3 +391,4 @@ func waitForHTTPServer(url string, timeout time.Duration) error {
 
 	return fmt.Errorf("server did not start within %v", timeout)
 }
+

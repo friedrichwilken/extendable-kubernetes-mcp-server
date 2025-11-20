@@ -4,10 +4,7 @@ package e2e
 
 import (
 	"encoding/json"
-	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -325,55 +322,18 @@ func TestClusterFailover(t *testing.T) {
 }
 
 // Helper function to create test kubeconfig
-func createTestKubeconfig(t *testing.T, tempDir string, clusters map[string]string, currentContext string) string {
-	kubeconfigPath := filepath.Join(tempDir, "kubeconfig")
-
-	// Build clusters section
-	clustersYAML := []string{}
-	contextsYAML := []string{}
-	usersYAML := []string{}
-
-	for name, server := range clusters {
-		clustersYAML = append(clustersYAML, fmt.Sprintf(`- cluster:
-    server: %s
-    insecure-skip-tls-verify: true
-  name: %s`, server, name))
-
-		contextsYAML = append(contextsYAML, fmt.Sprintf(`- context:
-    cluster: %s
-    user: %s-user
-  name: %s`, name, name, name))
-
-		usersYAML = append(usersYAML, fmt.Sprintf(`- name: %s-user
-  user:
-    token: test-token-%s`, name, name))
-	}
-
-	kubeconfigContent := fmt.Sprintf(`apiVersion: v1
-kind: Config
-clusters:
-%s
-contexts:
-%s
-current-context: %s
-users:
-%s
-`, strings.Join(clustersYAML, "\n"),
-		strings.Join(contextsYAML, "\n"),
-		currentContext,
-		strings.Join(usersYAML, "\n"))
-
-	err := os.WriteFile(kubeconfigPath, []byte(kubeconfigContent), 0o600)
-	require.NoError(t, err)
-
-	return kubeconfigPath
-}
 
 // TestConfigurationValidation tests various configuration scenarios
 func TestConfigurationValidation(t *testing.T) {
 	utils.SkipIfShort(t)
 
 	serverPath := buildServerBinary(t)
+
+	// Create a test kubeconfig that all scenarios can use
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
 
 	scenarios := []struct {
 		name        string
@@ -383,25 +343,25 @@ func TestConfigurationValidation(t *testing.T) {
 	}{
 		{
 			name:        "default_config",
-			args:        []string{"--log-level", "0"},
+			args:        []string{"--kubeconfig", kubeconfigPath, "--log-level", "0"},
 			expectStart: true,
 			description: "Server should start with default configuration",
 		},
 		{
 			name:        "read_only_mode",
-			args:        []string{"--read-only", "--log-level", "0"},
+			args:        []string{"--kubeconfig", kubeconfigPath, "--read-only", "--log-level", "0"},
 			expectStart: true,
 			description: "Server should start in read-only mode",
 		},
 		{
 			name:        "destructive_disabled",
-			args:        []string{"--disable-destructive", "--log-level", "0"},
+			args:        []string{"--kubeconfig", kubeconfigPath, "--disable-destructive", "--log-level", "0"},
 			expectStart: true,
 			description: "Server should start with destructive operations disabled",
 		},
 		{
 			name:        "specific_toolsets",
-			args:        []string{"--toolsets", "core,config", "--log-level", "0"},
+			args:        []string{"--kubeconfig", kubeconfigPath, "--toolsets", "core,config", "--log-level", "0"},
 			expectStart: true,
 			description: "Server should start with specific toolsets only",
 		},
