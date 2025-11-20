@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -14,6 +15,31 @@ import (
 )
 
 // Helper functions shared across E2E tests
+
+// findProjectRoot searches for the project root by looking for go.mod file
+func findProjectRoot() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// Walk up the directory tree looking for go.mod
+	dir := cwd
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root
+			break
+		}
+		dir = parent
+	}
+
+	return "", os.ErrNotExist
+}
 
 // tempDir creates a temporary directory for testing, works with both *testing.T and *testing.B
 func tempDir(tb testing.TB) string {
@@ -35,11 +61,12 @@ func buildServerBinary(tb testing.TB) string {
 	tempDirectory := tempDir(tb)
 	serverPath := tempDirectory + "/test-e2e-server"
 
+	// Find project root by looking for go.mod file
+	projectRoot, err := findProjectRoot()
+	require.NoError(tb, err, "Failed to find project root")
+
 	buildCmd := exec.Command("go", "build", "-o", serverPath, "./cmd") // #nosec G204 -- controlled paths for testing
-	// Use current working directory instead of hardcoded path
-	cwd, err := os.Getwd()
-	require.NoError(tb, err, "Failed to get current working directory")
-	buildCmd.Dir = cwd
+	buildCmd.Dir = projectRoot
 
 	output, err := buildCmd.CombinedOutput()
 	require.NoError(tb, err, "Failed to build server binary: %s", string(output))
