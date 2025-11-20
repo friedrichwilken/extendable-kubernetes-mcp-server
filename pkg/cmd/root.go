@@ -38,7 +38,6 @@ import (
 	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/config"
 	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/core"
 	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/helm"
-	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/kiali"
 )
 
 var (
@@ -354,8 +353,7 @@ func (m *ExtendableMCPServerOptions) Run() error {
 		return internalhttp.Serve(ctx, mcpServer, m.StaticConfig, oidcProvider, httpClient)
 	}
 
-	ctx := context.Background()
-	if err := mcpServer.ServeStdio(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	if err := mcpServer.ServeStdio(); err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
 

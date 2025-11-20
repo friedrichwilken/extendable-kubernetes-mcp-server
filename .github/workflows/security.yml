@@ -23,19 +23,13 @@ jobs:
       actions: read
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
       with:
         fetch-depth: 0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -51,13 +45,13 @@ jobs:
       run: gosec -fmt sarif -out gosec-results.sarif ./...
 
     - name: Upload Gosec results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4.31.4
       if: always()
       with:
         sarif_file: gosec-results.sarif
 
     - name: Upload Gosec results as artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4.5.0
       if: always()
       with:
         name: gosec-results
@@ -78,31 +72,25 @@ jobs:
         language: [ 'go' ]
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4.31.4
       with:
         languages: ${{ matrix.language }}
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+      uses: github/codeql-action/autobuild@v4.31.4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4.31.4
 
   # Advanced linting and code quality checks
   advanced-linting:
@@ -110,19 +98,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
       with:
         fetch-depth: 0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -146,9 +128,9 @@ jobs:
 
     - name: Check imports formatting
       run: |
-        if [ "$(find . -name '*.go' -not -path './kubernetes-mcp-server/*' -exec goimports -l {} \;)" != "" ]; then
+        if [ "$(find . -name '*.go' -exec goimports -l {} \;)" != "" ]; then
           echo "The following files have import formatting issues:"
-          find . -name '*.go' -not -path './kubernetes-mcp-server/*' -exec goimports -l {} \;
+          find . -name '*.go' -exec goimports -l {} \;
           echo "Run 'goimports -w .' to fix these issues"
           exit 1
         fi
@@ -188,17 +170,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -218,7 +194,7 @@ jobs:
         syft packages . -o table=sbom.txt
 
     - name: Upload SBOM artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4.5.0
       with:
         name: software-bill-of-materials
         path: |
@@ -241,19 +217,19 @@ jobs:
         echo "Dependency scan result: ${{ needs.dependency-scan.result }}"
 
         if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
-          echo "❌ Security scan failed or was cancelled"
+          echo "❌ Security scan failed or was canceled"
           exit 1
         fi
         if [[ "${{ needs.codeql-analysis.result }}" != "success" ]]; then
-          echo "❌ CodeQL analysis failed or was cancelled"
+          echo "❌ CodeQL analysis failed or was canceled"
           exit 1
         fi
         if [[ "${{ needs.advanced-linting.result }}" != "success" ]]; then
-          echo "❌ Advanced linting failed or was cancelled"
+          echo "❌ Advanced linting failed or was canceled"
           exit 1
         fi
         if [[ "${{ needs.dependency-scan.result }}" != "success" ]]; then
-          echo "❌ Dependency scan failed or was cancelled"
+          echo "❌ Dependency scan failed or was canceled"
           exit 1
         fi
 

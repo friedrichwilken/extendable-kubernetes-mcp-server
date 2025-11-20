@@ -16,20 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
       with:
         # Fetch full history for better golangci-lint performance
         fetch-depth: 0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -41,10 +35,9 @@ jobs:
     - name: Run gofumpt formatting check
       run: |
         go install mvdan.cc/gofumpt@latest
-        # Exclude kubernetes-mcp-server directory from formatting check
-        if [ "$(find . -name '*.go' -not -path './kubernetes-mcp-server/*' | xargs gofumpt -l)" != "" ]; then
+        if [ "$(gofumpt -l .)" != "" ]; then
           echo "Code is not properly formatted. Run 'make fmt-modern' to fix."
-          find . -name '*.go' -not -path './kubernetes-mcp-server/*' | xargs gofumpt -l
+          gofumpt -l .
           exit 1
         fi
 
@@ -73,17 +66,11 @@ jobs:
     needs: unit-tests-and-lint
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -113,17 +100,11 @@ jobs:
     needs: unit-tests-and-lint
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -159,17 +140,11 @@ jobs:
           binary-name: extendable-k8s-mcp-darwin
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -201,17 +176,11 @@ jobs:
     if: always()
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
 
