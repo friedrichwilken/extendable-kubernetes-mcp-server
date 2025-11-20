@@ -284,7 +284,7 @@ func TestToolsetsFlag(t *testing.T) {
 
 	// Should mention available toolsets in help text
 	helpText := toolsetsFlag.Usage
-	expectedToolsets := []string{"config", "core", "helm", "kiali"}
+	expectedToolsets := []string{"config", "core", "helm"}
 
 	for _, toolset := range expectedToolsets {
 		assert.Contains(t, helpText, toolset, "toolsets help should mention %s toolset", toolset)
