@@ -53,7 +53,7 @@ The server provides all the same tools as kubernetes-mcp-server:
 ```bash
 # Clone both repositories
 git clone https://github.com/containers/kubernetes-mcp-server.git
-git clone <this-repository-url> extendable-kubernetes-mcp-server
+git clone https://github.com/friedrichwilken/extendable-kubernetes-mcp-server.git
 cd extendable-kubernetes-mcp-server
 
 # Build the server
@@ -141,7 +141,18 @@ This server is designed to be a drop-in replacement for kubernetes-mcp-server:
 
 ## License
 
-Same license as kubernetes-mcp-server.
+MIT License - see [LICENSE](LICENSE) for details.
+
+## Acknowledgments
+
+This project is based on and extends [kubernetes-mcp-server](https://github.com/containers/kubernetes-mcp-server) by the Containers organization. The original project is licensed under the Apache License 2.0. We gratefully acknowledge their excellent work that serves as the foundation for this extendable version.
+
+Key contributions from the original project:
+- Core MCP protocol implementation
+- Kubernetes client integration patterns
+- Toolset architecture and interfaces
+- Multi-cluster support design
+- HTTP/SSE transport implementation
 
 ## Contributing
 
