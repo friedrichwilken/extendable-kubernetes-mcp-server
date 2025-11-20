@@ -27,6 +27,13 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Checkout kubernetes-mcp-server dependency
+      uses: actions/checkout@v4
+      with:
+        repository: containers/kubernetes-mcp-server
+        path: ../kubernetes-mcp-server
+        ref: main
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
@@ -38,7 +45,7 @@ jobs:
       run: go mod download
 
     - name: Install Gosec
-      run: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+      run: go install github.com/securego/gosec/v2/cmd/gosec@latest
 
     - name: Run Gosec security scanner
       run: gosec -fmt sarif -out gosec-results.sarif ./...
@@ -78,6 +85,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Checkout kubernetes-mcp-server dependency
+      uses: actions/checkout@v4
+      with:
+        repository: containers/kubernetes-mcp-server
+        path: ../kubernetes-mcp-server
+        ref: main
+
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
@@ -104,6 +118,13 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
+
+    - name: Checkout kubernetes-mcp-server dependency
+      uses: actions/checkout@v4
+      with:
+        repository: containers/kubernetes-mcp-server
+        path: ../kubernetes-mcp-server
+        ref: main
 
     - name: Set up Go
       uses: actions/setup-go@v5
@@ -173,6 +194,13 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Checkout kubernetes-mcp-server dependency
+      uses: actions/checkout@v4
+      with:
+        repository: containers/kubernetes-mcp-server
+        path: ../kubernetes-mcp-server
+        ref: main
 
     - name: Set up Go
       uses: actions/setup-go@v5

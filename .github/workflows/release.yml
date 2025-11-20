@@ -42,6 +42,13 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: Checkout kubernetes-mcp-server dependency
+      uses: actions/checkout@v4
+      with:
+        repository: containers/kubernetes-mcp-server
+        path: ../kubernetes-mcp-server
+        ref: main
+
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
