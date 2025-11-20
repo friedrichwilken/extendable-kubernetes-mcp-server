@@ -136,7 +136,7 @@ jobs:
         fi
 
     - name: Check for misspellings
-      run: misspell -error -locale US .
+      run: misspell -error -locale US . -i "MITRE"
 
     - name: Run go vet with additional checks
       run: |

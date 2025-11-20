@@ -45,7 +45,7 @@ jobs:
       uses: golangci/golangci-lint-action@v9
       with:
         version: latest
-        args: --timeout=5m --skip-dirs=kubernetes-mcp-server
+        args: --timeout=5m
 
     - name: Run unit tests
       run: make test-unit
