@@ -109,6 +109,7 @@ All kubernetes-mcp-server flags are supported:
 extendable-kubernetes-mcp-server/
 ├── cmd/                    # Main application entry point
 ├── pkg/cmd/               # CLI command structure
+├── test/                  # Comprehensive testing infrastructure
 ├── Makefile              # Build and development tasks
 ├── go.mod                # Go module definition
 └── README.md             # This file
