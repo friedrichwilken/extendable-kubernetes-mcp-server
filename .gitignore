@@ -1,0 +1,90 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Build directory
+build/
+dist/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Test coverage files
+coverage.out
+coverage.html
+coverage.xml
+
+# Log files
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Configuration files with secrets (customize as needed)
+*.env
+.env
+.env.local
+.env.production
+config.yaml
+config.yml
+secrets.yaml
+secrets.yml
+
+# Kubernetes config files (uncomment if you don't want to commit kubeconfig)
+# kubeconfig
+# .kube/
+
+# Development and debugging
+debug
+debug.test
+*.prof
+
+# Air live reload tool
+tmp/
+
+# Local development files
+local/
+
+# GoReleaser files and artifacts
+.goreleaser.yml
+dist/
+
+# Test fixtures that shouldn't be committed
+test/fixtures/generated/
+
+# IDE-specific files
+.vimrc.local
+.nvimrc.local
+
+# Documentation build artifacts
+docs/_build/
+site/
