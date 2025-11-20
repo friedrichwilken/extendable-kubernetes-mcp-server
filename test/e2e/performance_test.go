@@ -391,4 +391,3 @@ func waitForHTTPServer(url string, timeout time.Duration) error {
 
 	return fmt.Errorf("server did not start within %v", timeout)
 }
-

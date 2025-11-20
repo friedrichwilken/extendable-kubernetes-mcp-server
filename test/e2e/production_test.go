@@ -543,4 +543,3 @@ func simulateInvalidRequest(client *http.Client, serverURL string, requestID int
 	// Success means server handled invalid request gracefully (returned error response)
 	return resp.StatusCode >= 200 && resp.StatusCode < 500
 }
-
