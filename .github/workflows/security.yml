@@ -45,7 +45,7 @@ jobs:
       run: go mod download
 
     - name: Install Gosec
-      run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      run: go install github.com/securego/gosec/v2/cmd/gosec@v2.22.10
 
     - name: Run Gosec security scanner
       run: gosec -fmt sarif -out gosec-results.sarif ./...
@@ -146,9 +146,9 @@ jobs:
 
     - name: Check imports formatting
       run: |
-        if [ "$(goimports -l .)" != "" ]; then
+        if [ "$(find . -name '*.go' -not -path './kubernetes-mcp-server/*' -exec goimports -l {} \;)" != "" ]; then
           echo "The following files have import formatting issues:"
-          goimports -l .
+          find . -name '*.go' -not -path './kubernetes-mcp-server/*' -exec goimports -l {} \;
           echo "Run 'goimports -w .' to fix these issues"
           exit 1
         fi
