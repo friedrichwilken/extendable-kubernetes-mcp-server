@@ -135,7 +135,8 @@ jobs:
     - name: Check for misspellings
       run: |
         # Use modern typos spell checker (much better than misspell)
-        typos .
+        # Exclude go.mod and go.sum files which contain technical package names
+        typos --exclude "go.mod" --exclude "go.sum" .
 
     - name: Run go vet with additional checks
       run: |
