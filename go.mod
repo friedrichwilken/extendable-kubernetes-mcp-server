@@ -139,4 +139,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/containers/kubernetes-mcp-server => ../kubernetes-mcp-server
+replace github.com/containers/kubernetes-mcp-server => ./kubernetes-mcp-server

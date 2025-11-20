@@ -21,6 +21,9 @@ go.work
 build/
 dist/
 
+# Local development symlink (CI checkouts real directory)
+kubernetes-mcp-server
+
 # IDE and editor files
 .vscode/
 .idea/
