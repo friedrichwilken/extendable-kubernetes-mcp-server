@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/containers/extendable-kubernetes-mcp-server/test/utils"
+	"github.com/friedrichwilken/extendable-kubernetes-mcp-server/test/utils"
 )
 
 var testEnv *envtest.Environment

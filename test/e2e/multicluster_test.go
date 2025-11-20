@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/containers/extendable-kubernetes-mcp-server/test/utils"
+	"github.com/friedrichwilken/extendable-kubernetes-mcp-server/test/utils"
 )
 
 // TestMultiClusterConfiguration tests server behavior with multiple cluster contexts

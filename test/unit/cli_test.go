@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/cli-runtime/pkg/genericiooptions"
 
-	"github.com/containers/extendable-kubernetes-mcp-server/pkg/cmd"
+	"github.com/friedrichwilken/extendable-kubernetes-mcp-server/pkg/cmd"
 )
 
 func TestCLICompatibility(t *testing.T) {
