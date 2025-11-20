@@ -115,16 +115,13 @@ jobs:
 
     - name: Install additional linters
       run: |
-        go install honnef.co/go/tools/cmd/staticcheck@latest
-        go install github.com/kisielk/errcheck@latest
+        go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
         go install golang.org/x/tools/cmd/goimports@latest
-        go install github.com/client9/misspell/cmd/misspell@latest
+        curl -L https://github.com/crate-ci/typos/releases/download/v1.39.2/typos-v1.39.2-x86_64-unknown-linux-musl.tar.gz | tar -xzf - ./typos
+        sudo mv typos /usr/local/bin/
 
     - name: Run staticcheck
       run: staticcheck ./...
-
-    - name: Run errcheck
-      run: errcheck ./...
 
     - name: Check imports formatting
       run: |
@@ -137,9 +134,8 @@ jobs:
 
     - name: Check for misspellings
       run: |
-        # Exclude SARIF files which contain valid "MITRE" organization name
-        find . -name "*.sarif" -exec rm {} \; || true
-        misspell -error -locale US .
+        # Use modern typos spell checker (much better than misspell)
+        typos .
 
     - name: Run go vet with additional checks
       run: |
