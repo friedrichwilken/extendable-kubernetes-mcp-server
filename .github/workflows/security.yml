@@ -112,32 +112,12 @@ jobs:
 
       - name: Install additional linters
         run: |
-          go install honnef.co/go/tools/cmd/staticcheck@2025.1.1
-          go install golang.org/x/tools/cmd/goimports@latest
           curl -L https://github.com/crate-ci/typos/releases/download/v1.39.2/typos-v1.39.2-x86_64-unknown-linux-musl.tar.gz | tar -xzf - ./typos
           sudo mv typos /usr/local/bin/
-
-      - name: Run staticcheck
-        run: staticcheck ./...
-
-      - name: Check imports formatting
-        run: |
-          if [ "$(find . -name '*.go' -exec goimports -l {} \;)" != "" ]; then
-            echo "The following files have import formatting issues:"
-            find . -name '*.go' -exec goimports -l {} \;
-            echo "Run 'goimports -w .' to fix these issues"
-            exit 1
-          fi
 
       - name: Check for misspellings
         run: |
           typos --exclude "go.mod" --exclude "go.sum" .
-
-      - name: Run go vet with additional checks
-        run: |
-          go vet ./...
-          go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@v0.39.0
-          shadow ./...
 
       - name: Check Go module tidiness
         run: |
@@ -148,16 +128,6 @@ jobs:
             exit 1
           fi
 
-      - name: Detect code complexity issues
-        run: |
-          go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0
-          # Check for functions with cyclomatic complexity > 10
-          if [ "$(gocyclo -over 10 .)" != "" ]; then
-            echo "The following functions have high cyclomatic complexity:"
-            gocyclo -over 10 .
-            echo "Consider refactoring to reduce complexity"
-            # Don't fail the build, just warn
-          fi
 
   # Dependency scanning and license checking
   dependency-scan:

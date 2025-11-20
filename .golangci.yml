@@ -24,6 +24,7 @@ linters:
     - gosec
     - lll
     - misspell
+    - predeclared
     - unconvert
     - unparam
 
