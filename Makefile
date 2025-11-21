@@ -153,7 +153,7 @@ release: clean
 # Show help
 help:
 	@echo "Available targets:"
-	@echo ""
+	@echo " "
 	@echo "Build targets:"
 	@echo "  all            - Clean, download deps, and build"
 	@echo "  build          - Build the binary"
