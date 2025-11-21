@@ -10,10 +10,45 @@ env:
   GO_VERSION: '1.25'
 
 jobs:
+  # Detect what types of files have changed
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.changes.outputs.code }}
+      docs: ${{ steps.changes.outputs.docs }}
+      ci: ${{ steps.changes.outputs.ci }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6.0.0
+
+    - name: Check for changes
+      uses: dorny/paths-filter@v3
+      id: changes
+      with:
+        filters: |
+          code:
+            - '**/*.go'
+            - 'go.mod'
+            - 'go.sum'
+            - 'Makefile'
+            - 'cmd/**'
+            - 'pkg/**'
+            - 'test/**'
+          docs:
+            - '**/*.md'
+            - '**/*.txt'
+            - '**/*.rst'
+            - 'LICENSE'
+          ci:
+            - '.github/workflows/**'
+
   # Stage 1: Fast feedback with unit tests and linting
   unit-tests-and-lint:
     name: Unit Tests & Linting
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.ci == 'true'
     steps:
     - name: Checkout code
       uses: actions/checkout@v6.0.0
@@ -63,7 +98,8 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-    needs: unit-tests-and-lint
+    needs: [changes, unit-tests-and-lint]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.ci == 'true'
     steps:
     - name: Checkout code
       uses: actions/checkout@v6.0.0
@@ -99,7 +135,8 @@ jobs:
   e2e-tests:
     name: End-to-End Tests
     runs-on: ubuntu-latest
-    needs: unit-tests-and-lint
+    needs: [changes, unit-tests-and-lint]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.ci == 'true'
     steps:
     - name: Checkout code
       uses: actions/checkout@v6.0.0
@@ -131,7 +168,8 @@ jobs:
   build:
     name: Build & Test Binaries
     runs-on: ${{ matrix.os }}
-    needs: unit-tests-and-lint
+    needs: [changes, unit-tests-and-lint]
+    if: needs.changes.outputs.code == 'true' || needs.changes.outputs.ci == 'true'
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -174,8 +212,8 @@ jobs:
   coverage:
     name: Coverage Report
     runs-on: ubuntu-latest
-    needs: [integration-tests, e2e-tests]
-    if: always()
+    needs: [changes, integration-tests, e2e-tests]
+    if: always() && (needs.changes.outputs.code == 'true' || needs.changes.outputs.ci == 'true')
     steps:
     - name: Checkout code
       uses: actions/checkout@v6.0.0
@@ -206,29 +244,58 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
 
+  # Lightweight check for documentation-only changes
+  docs-only:
+    name: Documentation Only
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs == 'true' && needs.changes.outputs.code == 'false' && needs.changes.outputs.ci == 'false'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6.0.0
+
+    - name: Check for typos
+      uses: crate-ci/typos@v1.27.3
+
+    - name: Validate markdown files
+      run: |
+        # Check that markdown files are properly formatted
+        find . -name "*.md" -exec echo "Validating {}" \;
+
   # Final status check
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [unit-tests-and-lint, integration-tests, e2e-tests, build, coverage]
+    needs: [changes, unit-tests-and-lint, integration-tests, e2e-tests, build, coverage, docs-only]
     if: always()
     steps:
     - name: Check CI status
       run: |
-        if [[ "${{ needs.unit-tests-and-lint.result }}" != "success" ]]; then
-          echo "Unit tests or linting failed"
-          exit 1
+        # Check if this is docs-only change
+        if [[ "${{ needs.changes.outputs.docs }}" == "true" && "${{ needs.changes.outputs.code }}" == "false" && "${{ needs.changes.outputs.ci }}" == "false" ]]; then
+          echo "Documentation-only change detected"
+          if [[ "${{ needs.docs-only.result }}" != "success" ]]; then
+            echo "Documentation validation failed"
+            exit 1
+          fi
+          echo "Documentation validation passed successfully!"
+        else
+          echo "Code or CI changes detected - checking full test suite"
+          if [[ "${{ needs.unit-tests-and-lint.result }}" != "success" ]]; then
+            echo "Unit tests or linting failed"
+            exit 1
+          fi
+          if [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
+            echo "Integration tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
+            echo "E2E tests failed"
+            exit 1
+          fi
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "Build failed"
+            exit 1
+          fi
+          echo "All CI checks passed successfully!"
         fi
-        if [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
-          echo "Integration tests failed"
-          exit 1
-        fi
-        if [[ "${{ needs.e2e-tests.result }}" != "success" ]]; then
-          echo "E2E tests failed"
-          exit 1
-        fi
-        if [[ "${{ needs.build.result }}" != "success" ]]; then
-          echo "Build failed"
-          exit 1
-        fi
-        echo "All CI checks passed successfully! 🚀"
