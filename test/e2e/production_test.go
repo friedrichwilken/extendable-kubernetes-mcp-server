@@ -26,6 +26,12 @@ func TestProductionWorkflow(t *testing.T) {
 
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Use HTTP transport for production-like testing
 	addr, err := utils.RandomPortAddress()
 	require.NoError(t, err)
@@ -33,6 +39,7 @@ func TestProductionWorkflow(t *testing.T) {
 
 	// Start server with production-like settings
 	cmd := exec.Command(serverPath,
+		"--kubeconfig", kubeconfigPath,
 		"--port", port,
 		"--log-level", "2", // Moderate logging for production
 		"--read-only", // Safe mode for production
@@ -140,12 +147,10 @@ func testConcurrentClientSimulation(t *testing.T, serverURL string) {
 	// Analyze results
 	totalSuccessful := 0
 	totalFailed := 0
-	clientDurations := make([]time.Duration, 0, numClients)
 
 	for result := range results {
 		totalSuccessful += result.successful
 		totalFailed += result.failed
-		clientDurations = append(clientDurations, result.totalDuration)
 		t.Logf("Client %d: %d successful, %d failed (duration: %v)",
 			result.clientID, result.successful, result.failed, result.totalDuration)
 	}
@@ -243,7 +248,7 @@ func testErrorRecovery(t *testing.T, serverURL string) {
 				}
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Read response
 			body, err := io.ReadAll(resp.Body)
@@ -320,7 +325,7 @@ func testEdgeCases(t *testing.T, serverURL string) {
 				t.Logf("Request failed for %s: %v (may be expected)", edgeCase.description, err)
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Server should handle edge cases gracefully without crashing
 			assert.True(t, resp.StatusCode < 500, "Server should not crash on edge case: %s", edgeCase.description)
@@ -332,6 +337,8 @@ func testEdgeCases(t *testing.T, serverURL string) {
 }
 
 // TestLongRunningSession simulates a long-running MCP session
+//
+//gocyclo:ignore - Long-running test function with multiple phases and error handling
 func TestLongRunningSession(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping long-running session test in short mode")
@@ -339,8 +346,14 @@ func TestLongRunningSession(t *testing.T) {
 
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in stdio mode for long-running test
-	cmd := exec.Command(serverPath, "--log-level", "1")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "1")
 	stdin, stdout, stderr := startServerWithPipes(t, cmd)
 	defer func() {
 		_ = cmd.Process.Kill()
@@ -455,7 +468,7 @@ func simulateInitialization(client *http.Client, serverURL string, requestID int
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
@@ -477,7 +490,7 @@ func simulateToolsDiscovery(client *http.Client, serverURL string, requestID int
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	return resp.StatusCode >= 200 && resp.StatusCode < 300
 }
@@ -502,7 +515,7 @@ func simulateReadOnlyToolCall(client *http.Client, serverURL string, requestID i
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Accept both success and error responses (server is in read-only mode)
 	return resp.StatusCode >= 200 && resp.StatusCode < 500
@@ -525,7 +538,7 @@ func simulateInvalidRequest(client *http.Client, serverURL string, requestID int
 	if err != nil {
 		return false
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Success means server handled invalid request gracefully (returned error response)
 	return resp.StatusCode >= 200 && resp.StatusCode < 500

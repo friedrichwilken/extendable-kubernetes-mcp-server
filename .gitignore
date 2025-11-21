@@ -84,6 +84,9 @@ dist/
 # Test fixtures that shouldn't be committed
 test/fixtures/generated/
 
+# Envtest binaries and tools
+test/envtest/
+
 # IDE-specific files
 .vimrc.local
 .nvimrc.local

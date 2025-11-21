@@ -16,20 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
       with:
         # Fetch full history for better golangci-lint performance
         fetch-depth: 0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -48,7 +42,7 @@ jobs:
         fi
 
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v6
+      uses: golangci/golangci-lint-action@v9.0.0
       with:
         version: latest
         args: --timeout=5m
@@ -57,7 +51,7 @@ jobs:
       run: make test-unit
 
     - name: Upload unit test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: unit-test-results
@@ -72,17 +66,11 @@ jobs:
     needs: unit-tests-and-lint
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -95,10 +83,12 @@ jobs:
       run: make setup-envtest
 
     - name: Run integration tests
-      run: make test-integration
+      run: |
+        source test/envtest/env.sh
+        make test-integration
 
     - name: Upload integration test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: integration-test-results
@@ -112,17 +102,11 @@ jobs:
     needs: unit-tests-and-lint
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -135,7 +119,7 @@ jobs:
       run: make test-e2e
 
     - name: Upload E2E test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       if: always()
       with:
         name: e2e-test-results
@@ -158,17 +142,11 @@ jobs:
           binary-name: extendable-k8s-mcp-darwin
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
         cache: true
@@ -186,7 +164,7 @@ jobs:
         ./build/extendable-k8s-mcp --help
 
     - name: Upload binary artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.binary-name }}
         path: build/extendable-k8s-mcp
@@ -200,22 +178,16 @@ jobs:
     if: always()
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6.1.0
       with:
         go-version: ${{ env.GO_VERSION }}
 
     - name: Download all test artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         pattern: "*test-results"
         path: test-results
@@ -227,7 +199,7 @@ jobs:
         make test-coverage
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
         file: ./coverage.html
         flags: unittests,integration,e2e

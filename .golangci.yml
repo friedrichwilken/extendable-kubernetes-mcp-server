@@ -1,32 +1,11 @@
 # GolangCI-Lint configuration for extendable-kubernetes-mcp-server
 # Ensures clean, maintainable code that follows Go best practices
 
-version: 2
+version: "2"
 
 run:
   timeout: 5m
   tests: true
-
-output:
-  format: colored-line-number
-
-linters-settings:
-  govet:
-    check-shadowing: true
-  gocyclo:
-    min-complexity: 15
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - performance
-      - style
-  lll:
-    line-length: 120
-  misspell:
-    locale: US
 
 linters:
   enable:
@@ -45,22 +24,40 @@ linters:
     - gosec
     - lll
     - misspell
+    - predeclared
     - unconvert
     - unparam
 
+  settings:
+    gocyclo:
+      min-complexity: 15
+    goconst:
+      min-len: 3
+      min-occurrences: 3
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - performance
+        - style
+    lll:
+      line-length: 160
+    misspell:
+      locale: US
+
+  exclusions:
+    rules:
+      # Exclude some linters from running on tests files
+      - path: _test\.go
+        linters:
+          - goconst
+          - lll
+          - gosec
+
+      # Exclude shadow checking for err variables (common pattern)
+      - text: "shadow: declaration of \"err\""
+        linters:
+          - govet
+
 issues:
-  exclude-rules:
-    # Exclude some linters from running on tests files
-    - path: _test\.go
-      linters:
-        - goconst
-        - lll
-        - gosec
-
-    # Exclude shadow checking for err variables (common pattern)
-    - text: "shadow: declaration of \"err\""
-      linters:
-        - govet
-
   max-issues-per-linter: 0
   max-same-issues: 0

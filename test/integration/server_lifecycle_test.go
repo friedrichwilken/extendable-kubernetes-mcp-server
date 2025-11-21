@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -18,15 +19,86 @@ import (
 	"github.com/friedrichwilken/extendable-kubernetes-mcp-server/test/utils"
 )
 
+// findProjectRoot finds the project root directory by looking for go.mod
+func findProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf("could not find project root (go.mod not found)")
+}
+
+// createTestKubeconfig creates a test kubeconfig file for CI environments
+func createTestKubeconfig(t *testing.T, tempDir string, clusters map[string]string, currentContext string) string {
+	kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:`
+
+	for name, server := range clusters {
+		kubeconfigContent += fmt.Sprintf(`
+- cluster:
+    server: %s
+    insecure-skip-tls-verify: true
+  name: %s`, server, name)
+	}
+
+	kubeconfigContent += `
+contexts:`
+
+	for name := range clusters {
+		kubeconfigContent += fmt.Sprintf(`
+- context:
+    cluster: %s
+    user: %s-user
+  name: %s`, name, name, name)
+	}
+
+	kubeconfigContent += fmt.Sprintf(`
+current-context: %s
+users:`, currentContext)
+
+	for name := range clusters {
+		kubeconfigContent += fmt.Sprintf(`
+- name: %s-user
+  user:
+    token: test-token`, name)
+	}
+
+	kubeconfigPath := filepath.Join(tempDir, "kubeconfig")
+	err := os.WriteFile(kubeconfigPath, []byte(kubeconfigContent), 0o644)
+	require.NoError(t, err, "Failed to create test kubeconfig")
+
+	return kubeconfigPath
+}
+
 func TestServerStartupStdio(t *testing.T) {
 	utils.SkipIfShort(t)
 
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"stdio-test-cluster": "https://test-cluster:6443",
+	}, "stdio-test-cluster")
+
 	// Start server in stdio mode
-	cmd := exec.Command(serverPath)
-	cmd.Env = append(os.Environ(), "LOG_LEVEL=0") // Minimal logging for tests
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
+	cmd.Env = os.Environ()
 
 	stdin, err := cmd.StdinPipe()
 	require.NoError(t, err, "Failed to create stdin pipe")
@@ -73,11 +145,10 @@ func TestServerStartupStdio(t *testing.T) {
 	}()
 
 	select {
-	case err = <-done:
+	case <-done:
 		// Read completed
 	case <-time.After(5 * time.Second):
 		// Timeout - this is acceptable
-		err = nil
 	}
 
 	// Server should either respond or close gracefully
@@ -97,9 +168,15 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"http-test-cluster": "https://test-cluster:6443",
+	}, "http-test-cluster")
+
 	// Start server in HTTP mode
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "0")
-	cmd.Env = append(os.Environ())
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "0")
+	cmd.Env = os.Environ()
 
 	stderr, err := cmd.StderrPipe()
 	require.NoError(t, err, "Failed to create stderr pipe")
@@ -125,7 +202,7 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Test basic HTTP endpoints
 	resp, err := http.Get(serverURL + "/health")
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		assert.True(t, resp.StatusCode == 200 || resp.StatusCode == 404,
 			"Health endpoint should return 200 or 404, got %d", resp.StatusCode)
 	}
@@ -133,7 +210,7 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Test MCP endpoint exists
 	resp, err = http.Get(serverURL + "/mcp")
 	if err == nil {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		// Should get some response (might be 400 for invalid request, but server should respond)
 		assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,
 			"MCP endpoint should be available, got status %d", resp.StatusCode)
@@ -152,8 +229,14 @@ func TestServerGracefulShutdown(t *testing.T) {
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"shutdown-test-cluster": "https://test-cluster:6443",
+	}, "shutdown-test-cluster")
+
 	// Start server in HTTP mode
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "1")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "1")
 
 	// Start the server
 	err = cmd.Start()
@@ -246,30 +329,14 @@ func TestServerEnvironmentHandling(t *testing.T) {
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
-	// Test with KUBECONFIG environment variable
+	// Create test kubeconfig for CI environment
 	tempDir := utils.TempDir(t)
-	kubeconfigPath := utils.WriteTestFile(t, tempDir, "kubeconfig", `
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: https://localhost:6443
-    insecure-skip-tls-verify: true
-  name: test-cluster
-contexts:
-- context:
-    cluster: test-cluster
-    user: test-user
-  name: test-context
-current-context: test-context
-users:
-- name: test-user
-  user:
-    token: test-token
-`)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"env-test-cluster": "https://test-cluster:6443",
+	}, "env-test-cluster")
 
-	cmd := exec.Command(serverPath, "--log-level", "0")
-	cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
+	cmd.Env = os.Environ()
 
 	// Start process
 	err := cmd.Start()
@@ -295,9 +362,13 @@ func buildServerBinary(t *testing.T) string {
 	tempDir := utils.TempDir(t)
 	serverPath := tempDir + "/test-server"
 
+	// Find project root dynamically
+	projectRoot, err := findProjectRoot()
+	require.NoError(t, err, "Failed to find project root")
+
 	// Build command
 	buildCmd := exec.Command("go", "build", "-o", serverPath, "./cmd")
-	buildCmd.Dir = "/Users/I549741/claude-playroom/extendable-kubernetes-mcp-server"
+	buildCmd.Dir = projectRoot
 
 	output, err := buildCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build server binary: %s", string(output))
@@ -312,7 +383,7 @@ func waitForHTTPServer(url string, timeout time.Duration) error {
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(url)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil
 		}
 

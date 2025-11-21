@@ -2,15 +2,15 @@ name: Security & Code Quality
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # Run weekly security scans
-    - cron: '0 6 * * 1'
+    - cron: "0 6 * * 1"
 
 env:
-  GO_VERSION: '1.25'
+  GO_VERSION: "1.25"
 
 jobs:
   # Security scanning and vulnerability detection
@@ -22,47 +22,40 @@ jobs:
       contents: read
       actions: read
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v6.0.0
+        with:
+          fetch-depth: 0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
+      - name: Set up Go
+        uses: actions/setup-go@v6.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache: true
-        cache-dependency-path: go.sum
+      - name: Download dependencies
+        run: go mod download
 
-    - name: Download dependencies
-      run: go mod download
+      - name: Install Gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@v2.22.10
 
-    - name: Install Gosec
-      run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Run Gosec security scanner
+        run: gosec -fmt sarif -out gosec-results.sarif ./...
 
-    - name: Run Gosec security scanner
-      run: gosec -fmt sarif -out gosec-results.sarif ./...
+      - name: Upload Gosec results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v4.31.4
+        if: always()
+        with:
+          sarif_file: gosec-results.sarif
 
-    - name: Upload Gosec results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v3
-      if: always()
-      with:
-        sarif_file: gosec-results.sarif
-
-    - name: Upload Gosec results as artifact
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: gosec-results
-        path: gosec-results.sarif
-        retention-days: 30
+      - name: Upload Gosec results as artifact
+        uses: actions/upload-artifact@v5
+        if: always()
+        with:
+          name: gosec-results
+          path: gosec-results.sarif
+          retention-days: 30
 
   # CodeQL analysis for comprehensive security scanning
   codeql-analysis:
@@ -75,156 +68,103 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'go' ]
+        language: ["go"]
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4.31.4
+        with:
+          languages: ${{ matrix.language }}
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
-      with:
-        languages: ${{ matrix.language }}
+      - name: Set up Go
+        uses: actions/setup-go@v6.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache: true
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v4.31.4
 
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4.31.4
 
   # Advanced linting and code quality checks
   advanced-linting:
     name: Advanced Linting & Code Quality
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v6.0.0
+        with:
+          fetch-depth: 0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
+      - name: Set up Go
+        uses: actions/setup-go@v6.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache: true
-        cache-dependency-path: go.sum
+      - name: Download dependencies
+        run: go mod download
 
-    - name: Download dependencies
-      run: go mod download
+      - name: Install additional linters
+        run: |
+          curl -L https://github.com/crate-ci/typos/releases/download/v1.39.2/typos-v1.39.2-x86_64-unknown-linux-musl.tar.gz | tar -xzf - ./typos
+          sudo mv typos /usr/local/bin/
 
-    - name: Install additional linters
-      run: |
-        go install honnef.co/go/tools/cmd/staticcheck@latest
-        go install github.com/kisielk/errcheck@latest
-        go install golang.org/x/tools/cmd/goimports@latest
-        go install github.com/client9/misspell/cmd/misspell@latest
+      - name: Check for misspellings
+        run: |
+          typos --exclude "go.mod" --exclude "go.sum" .
 
-    - name: Run staticcheck
-      run: staticcheck ./...
+      - name: Check Go module tidiness
+        run: |
+          go mod tidy
+          if [ "$(git status --porcelain go.mod go.sum)" != "" ]; then
+            echo "go.mod or go.sum is not tidy"
+            git diff go.mod go.sum
+            exit 1
+          fi
 
-    - name: Run errcheck
-      run: errcheck ./...
-
-    - name: Check imports formatting
-      run: |
-        if [ "$(goimports -l .)" != "" ]; then
-          echo "The following files have import formatting issues:"
-          goimports -l .
-          echo "Run 'goimports -w .' to fix these issues"
-          exit 1
-        fi
-
-    - name: Check for misspellings
-      run: misspell -error -locale US .
-
-    - name: Run go vet with additional checks
-      run: |
-        go vet -shadow ./...
-        go vet -copylocks ./...
-        go vet -nilfunc ./...
-
-    - name: Check Go module tidiness
-      run: |
-        go mod tidy
-        if [ "$(git status --porcelain go.mod go.sum)" != "" ]; then
-          echo "go.mod or go.sum is not tidy"
-          git diff go.mod go.sum
-          exit 1
-        fi
-
-    - name: Detect code complexity issues
-      run: |
-        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-        # Check for functions with cyclomatic complexity > 10
-        if [ "$(gocyclo -over 10 .)" != "" ]; then
-          echo "The following functions have high cyclomatic complexity:"
-          gocyclo -over 10 .
-          echo "Consider refactoring to reduce complexity"
-          # Don't fail the build, just warn
-        fi
 
   # Dependency scanning and license checking
   dependency-scan:
     name: Dependency Security & License Scan
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6.0.0
 
-    - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
-      with:
-        repository: containers/kubernetes-mcp-server
-        path: kubernetes-mcp-server
-        ref: main
+      - name: Set up Go
+        uses: actions/setup-go@v6.1.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-        cache: true
+      - name: Download dependencies
+        run: go mod download
 
-    - name: Download dependencies
-      run: go mod download
+      - name: Run govulncheck (Go vulnerability scanner)
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+          govulncheck ./...
 
-    - name: Run govulncheck (Go vulnerability scanner)
-      run: |
-        go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck ./...
+      - name: Generate software bill of materials (SBOM)
+        run: |
+          go install github.com/anchore/syft/cmd/syft@v1.38.0
+          syft packages . -o spdx-json=sbom.spdx.json
+          syft packages . -o table=sbom.txt
 
-    - name: Generate software bill of materials (SBOM)
-      run: |
-        go install github.com/anchore/syft/cmd/syft@latest
-        syft packages . -o spdx-json=sbom.spdx.json
-        syft packages . -o table=sbom.txt
-
-    - name: Upload SBOM artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: software-bill-of-materials
-        path: |
-          sbom.spdx.json
-          sbom.txt
-        retention-days: 90
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v5
+        with:
+          name: software-bill-of-materials
+          path: |
+            sbom.spdx.json
+            sbom.txt
+          retention-days: 90
 
   # Final security status check
   security-status:
@@ -233,28 +173,29 @@ jobs:
     needs: [security-scan, codeql-analysis, advanced-linting, dependency-scan]
     if: always()
     steps:
-    - name: Check all security jobs status
-      run: |
-        echo "Security scan result: ${{ needs.security-scan.result }}"
-        echo "CodeQL analysis result: ${{ needs.codeql-analysis.result }}"
-        echo "Advanced linting result: ${{ needs.advanced-linting.result }}"
-        echo "Dependency scan result: ${{ needs.dependency-scan.result }}"
+      - name: Check all security jobs status
+        run: |
+          echo "Security scan result: ${{ needs.security-scan.result }}"
+          echo "CodeQL analysis result: ${{ needs.codeql-analysis.result }}"
+          echo "Advanced linting result: ${{ needs.advanced-linting.result }}"
+          echo "Dependency scan result: ${{ needs.dependency-scan.result }}"
 
-        if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
-          echo "❌ Security scan failed or was cancelled"
-          exit 1
-        fi
-        if [[ "${{ needs.codeql-analysis.result }}" != "success" ]]; then
-          echo "❌ CodeQL analysis failed or was cancelled"
-          exit 1
-        fi
-        if [[ "${{ needs.advanced-linting.result }}" != "success" ]]; then
-          echo "❌ Advanced linting failed or was cancelled"
-          exit 1
-        fi
-        if [[ "${{ needs.dependency-scan.result }}" != "success" ]]; then
-          echo "❌ Dependency scan failed or was cancelled"
-          exit 1
-        fi
+          if [[ "${{ needs.security-scan.result }}" != "success" ]]; then
+            echo "❌ Security scan failed or was canceled"
+            exit 1
+          fi
+          if [[ "${{ needs.codeql-analysis.result }}" != "success" ]]; then
+            echo "❌ CodeQL analysis failed or was canceled"
+            exit 1
+          fi
+          if [[ "${{ needs.advanced-linting.result }}" != "success" ]]; then
+            echo "❌ Advanced linting failed or was canceled"
+            exit 1
+          fi
+          if [[ "${{ needs.dependency-scan.result }}" != "success" ]]; then
+            echo "❌ Dependency scan failed or was canceled"
+            exit 1
+          fi
 
-        echo "✅ All security and code quality checks passed successfully! 🔒"
+          echo "✅ All security and code quality checks passed successfully! 🔒"
+

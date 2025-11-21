@@ -23,8 +23,14 @@ func TestCompleteWorkflowStdio(t *testing.T) {
 	// Build the server binary
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in stdio mode
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 
 	stdin, err := cmd.StdinPipe()
 	require.NoError(t, err, "Failed to create stdin pipe")
@@ -200,12 +206,19 @@ func TestWorkflowPerformance(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore - Performance test function with concurrent client coordination
 func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients, requestsPerClient int, timeout time.Duration) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	stdin, stdout, stderr := startServerWithPipes(t, cmd)
 	defer func() {
 		if cmd.Process != nil {
@@ -274,6 +287,7 @@ func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients,
 	totalRequests := concurrentClients * requestsPerClient
 	responseTimes := make([]time.Duration, 0, totalRequests)
 
+collectLoop:
 	for i := 0; i < totalRequests; i++ {
 		select {
 		case result := <-results:
@@ -285,7 +299,7 @@ func testWorkflowPerformance(t *testing.T, serverPath string, concurrentClients,
 			}
 		case <-ctx.Done():
 			t.Logf("Test timed out after %v", timeout)
-			break
+			break collectLoop
 		}
 	}
 

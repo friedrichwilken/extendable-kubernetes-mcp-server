@@ -22,7 +22,7 @@ LDFLAGS=-ldflags "-s -w"
 TEST_FLAGS=-v -race -coverprofile=coverage.out
 SHORT_TEST_FLAGS=-v -short -race
 
-.PHONY: all build clean test test-unit test-integration test-e2e test-coverage benchmark setup-envtest test-integration-envtest deps tidy fmt fmt-modern lint lint-fix run help
+.PHONY: all build clean test test-unit test-integration test-e2e test-coverage benchmark setup-envtest test-integration-envtest deps tidy fmt fmt-modern lint lint-fix run help code-quality pre-commit-check
 
 # Default target
 all: clean deps build
@@ -42,7 +42,7 @@ clean:
 	@echo "Clean completed"
 
 # Run all tests
-test:
+test: lint
 	@echo "Running all tests..."
 	$(GOTEST) $(TEST_FLAGS) ./...
 
@@ -178,6 +178,8 @@ help:
 	@echo "  fmt-modern     - Modern Go formatting (interface{} -> any)"
 	@echo "  lint           - Run golangci-lint"
 	@echo "  lint-fix       - Run golangci-lint with automatic fixes"
+	@echo "  code-quality   - Run all formatting and linting (tidy, fmt, fmt-modern, lint-fix)"
+	@echo "  pre-commit-check - Run code quality and all tests"
 	@echo "  run            - Build and run server in stdio mode"
 	@echo "  run-http       - Build and run server in HTTP mode"
 	@echo "  dev-setup      - Setup development environment"
@@ -185,6 +187,14 @@ help:
 	@echo "Other targets:"
 	@echo "  install        - Install dependencies and build"
 	@echo "  help           - Show this help message"
+
+# Code quality - runs all formatting and linting
+code-quality: tidy fmt fmt-modern lint-fix
+	@echo "Code quality checks completed"
+
+# Pre-commit check - runs code quality and all tests
+pre-commit-check: code-quality test
+	@echo "Pre-commit checks completed successfully"
 
 # Development targets
 dev-setup: deps tidy fmt

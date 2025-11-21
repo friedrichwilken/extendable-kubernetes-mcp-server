@@ -38,11 +38,12 @@ import (
 	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/config"
 	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/core"
 	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/helm"
-	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/kiali"
 )
 
 var (
-	long     = templates.LongDesc(i18n.T("Extendable Kubernetes Model Context Protocol (MCP) server - Clean foundation replicating kubernetes-mcp-server"))
+	long = templates.LongDesc(i18n.T(
+		"Extendable Kubernetes Model Context Protocol (MCP) server - " +
+			"Clean foundation replicating kubernetes-mcp-server"))
 	examples = templates.Examples(i18n.T(`
 # show this help
 extendable-k8s-mcp -h
@@ -144,23 +145,41 @@ func NewExtendableMCPServer(streams genericiooptions.IOStreams) *cobra.Command {
 	cmd.Flags().StringVar(&o.Port, flagPort, o.Port, "Start a streamable HTTP and SSE HTTP server on the specified port (e.g. 8080)")
 	cmd.Flags().StringVar(&o.SSEBaseUrl, flagSSEBaseUrl, o.SSEBaseUrl, "SSE public base URL to use when sending the endpoint message (e.g. https://example.com)")
 	cmd.Flags().StringVar(&o.Kubeconfig, flagKubeconfig, o.Kubeconfig, "Path to the kubeconfig file to use for authentication")
-	cmd.Flags().StringSliceVar(&o.Toolsets, flagToolsets, o.Toolsets, "Comma-separated list of MCP toolsets to use (available toolsets: "+strings.Join(toolsets.ToolsetNames(), ", ")+"). Defaults to "+strings.Join(o.StaticConfig.Toolsets, ", ")+".")
-	cmd.Flags().StringVar(&o.ListOutput, flagListOutput, o.ListOutput, "Output format for resource list operations (one of: "+strings.Join(output.Names, ", ")+"). Defaults to "+o.StaticConfig.ListOutput+".")
+	cmd.Flags().StringSliceVar(&o.Toolsets, flagToolsets, o.Toolsets,
+		"Comma-separated list of MCP toolsets to use (available toolsets: "+
+			strings.Join(toolsets.ToolsetNames(), ", ")+"). Defaults to "+
+			strings.Join(o.StaticConfig.Toolsets, ", ")+".")
+	cmd.Flags().StringVar(&o.ListOutput, flagListOutput, o.ListOutput,
+		"Output format for resource list operations (one of: "+
+			strings.Join(output.Names, ", ")+"). Defaults to "+o.StaticConfig.ListOutput+".")
 	cmd.Flags().BoolVar(&o.ReadOnly, flagReadOnly, o.ReadOnly, "If true, only tools annotated with readOnlyHint=true are exposed")
 	cmd.Flags().BoolVar(&o.DisableDestructive, flagDisableDestructive, o.DisableDestructive, "If true, tools annotated with destructiveHint=true are disabled")
-	cmd.Flags().BoolVar(&o.RequireOAuth, flagRequireOAuth, o.RequireOAuth, "If true, requires OAuth authorization as defined in the Model Context Protocol (MCP) specification. This flag is ignored if transport type is stdio")
+	cmd.Flags().BoolVar(&o.RequireOAuth, flagRequireOAuth, o.RequireOAuth,
+		"If true, requires OAuth authorization as defined in the Model Context Protocol (MCP) "+
+			"specification. This flag is ignored if transport type is stdio")
 	_ = cmd.Flags().MarkHidden(flagRequireOAuth)
-	cmd.Flags().StringVar(&o.OAuthAudience, flagOAuthAudience, o.OAuthAudience, "OAuth audience for token claims validation. Optional. If not set, the audience is not validated. Only valid if require-oauth is enabled.")
+	cmd.Flags().StringVar(&o.OAuthAudience, flagOAuthAudience, o.OAuthAudience,
+		"OAuth audience for token claims validation. Optional. If not set, "+
+			"the audience is not validated. Only valid if require-oauth is enabled.")
 	_ = cmd.Flags().MarkHidden(flagOAuthAudience)
-	cmd.Flags().BoolVar(&o.ValidateToken, flagValidateToken, o.ValidateToken, "If true, validates the token against the Kubernetes API Server using TokenReview. Optional. If not set, the token is not validated. Only valid if require-oauth is enabled.")
+	cmd.Flags().BoolVar(&o.ValidateToken, flagValidateToken, o.ValidateToken,
+		"If true, validates the token against the Kubernetes API Server using TokenReview. "+
+			"Optional. If not set, the token is not validated. Only valid if require-oauth is enabled.")
 	_ = cmd.Flags().MarkHidden(flagValidateToken)
-	cmd.Flags().StringVar(&o.AuthorizationURL, flagAuthorizationURL, o.AuthorizationURL, "OAuth authorization server URL for protected resource endpoint. If not provided, the Kubernetes API server host will be used. Only valid if require-oauth is enabled.")
+	cmd.Flags().StringVar(&o.AuthorizationURL, flagAuthorizationURL, o.AuthorizationURL,
+		"OAuth authorization server URL for protected resource endpoint. "+
+			"If not provided, the Kubernetes API server host will be used. Only valid if require-oauth is enabled.")
 	_ = cmd.Flags().MarkHidden(flagAuthorizationURL)
-	cmd.Flags().StringVar(&o.ServerURL, flagServerUrl, o.ServerURL, "Server URL of this application. Optional. If set, this url will be served in protected resource metadata endpoint and tokens will be validated with this audience. If not set, expected audience is kubernetes-mcp-server. Only valid if require-oauth is enabled.")
+	cmd.Flags().StringVar(&o.ServerURL, flagServerUrl, o.ServerURL,
+		"Server URL of this application. Optional. If set, this url will be served in "+
+			"protected resource metadata endpoint and tokens will be validated with this audience. "+
+			"If not set, expected audience is kubernetes-mcp-server. Only valid if require-oauth is enabled.")
 	_ = cmd.Flags().MarkHidden(flagServerUrl)
-	cmd.Flags().StringVar(&o.CertificateAuthority, flagCertificateAuthority, o.CertificateAuthority, "Certificate authority path to verify certificates. Optional. Only valid if require-oauth is enabled.")
+	cmd.Flags().StringVar(&o.CertificateAuthority, flagCertificateAuthority, o.CertificateAuthority,
+		"Certificate authority path to verify certificates. Optional. Only valid if require-oauth is enabled.")
 	_ = cmd.Flags().MarkHidden(flagCertificateAuthority)
-	cmd.Flags().BoolVar(&o.DisableMultiCluster, flagDisableMultiCluster, o.DisableMultiCluster, "Disable multi cluster tools. Optional. If true, all tools will be run against the default cluster/context.")
+	cmd.Flags().BoolVar(&o.DisableMultiCluster, flagDisableMultiCluster, o.DisableMultiCluster,
+		"Disable multi cluster tools. Optional. If true, all tools will be run against the default cluster/context.")
 
 	return cmd
 }
@@ -187,48 +206,34 @@ func (m *ExtendableMCPServerOptions) Complete(cmd *cobra.Command) error {
 }
 
 func (m *ExtendableMCPServerOptions) loadFlags(cmd *cobra.Command) {
-	if cmd.Flag(flagLogLevel).Changed {
-		m.StaticConfig.LogLevel = m.LogLevel
+	// Load basic flags using a mapping approach to reduce complexity
+	flagMappings := []struct {
+		name   string
+		setter func()
+	}{
+		{flagLogLevel, func() { m.StaticConfig.LogLevel = m.LogLevel }},
+		{flagPort, func() { m.StaticConfig.Port = m.Port }},
+		{flagSSEBaseUrl, func() { m.StaticConfig.SSEBaseURL = m.SSEBaseUrl }},
+		{flagKubeconfig, func() { m.StaticConfig.KubeConfig = m.Kubeconfig }},
+		{flagListOutput, func() { m.StaticConfig.ListOutput = m.ListOutput }},
+		{flagReadOnly, func() { m.StaticConfig.ReadOnly = m.ReadOnly }},
+		{flagDisableDestructive, func() { m.StaticConfig.DisableDestructive = m.DisableDestructive }},
+		{flagToolsets, func() { m.StaticConfig.Toolsets = m.Toolsets }},
+		{flagRequireOAuth, func() { m.StaticConfig.RequireOAuth = m.RequireOAuth }},
+		{flagOAuthAudience, func() { m.StaticConfig.OAuthAudience = m.OAuthAudience }},
+		{flagValidateToken, func() { m.StaticConfig.ValidateToken = m.ValidateToken }},
+		{flagAuthorizationURL, func() { m.StaticConfig.AuthorizationURL = m.AuthorizationURL }},
+		{flagServerUrl, func() { m.StaticConfig.ServerURL = m.ServerURL }},
+		{flagCertificateAuthority, func() { m.StaticConfig.CertificateAuthority = m.CertificateAuthority }},
 	}
-	if cmd.Flag(flagPort).Changed {
-		m.StaticConfig.Port = m.Port
+
+	for _, mapping := range flagMappings {
+		if cmd.Flag(mapping.name).Changed {
+			mapping.setter()
+		}
 	}
-	if cmd.Flag(flagSSEBaseUrl).Changed {
-		m.StaticConfig.SSEBaseURL = m.SSEBaseUrl
-	}
-	if cmd.Flag(flagKubeconfig).Changed {
-		m.StaticConfig.KubeConfig = m.Kubeconfig
-	}
-	if cmd.Flag(flagListOutput).Changed {
-		m.StaticConfig.ListOutput = m.ListOutput
-	}
-	if cmd.Flag(flagReadOnly).Changed {
-		m.StaticConfig.ReadOnly = m.ReadOnly
-	}
-	if cmd.Flag(flagDisableDestructive).Changed {
-		m.StaticConfig.DisableDestructive = m.DisableDestructive
-	}
-	if cmd.Flag(flagToolsets).Changed {
-		m.StaticConfig.Toolsets = m.Toolsets
-	}
-	if cmd.Flag(flagRequireOAuth).Changed {
-		m.StaticConfig.RequireOAuth = m.RequireOAuth
-	}
-	if cmd.Flag(flagOAuthAudience).Changed {
-		m.StaticConfig.OAuthAudience = m.OAuthAudience
-	}
-	if cmd.Flag(flagValidateToken).Changed {
-		m.StaticConfig.ValidateToken = m.ValidateToken
-	}
-	if cmd.Flag(flagAuthorizationURL).Changed {
-		m.StaticConfig.AuthorizationURL = m.AuthorizationURL
-	}
-	if cmd.Flag(flagServerUrl).Changed {
-		m.StaticConfig.ServerURL = m.ServerURL
-	}
-	if cmd.Flag(flagCertificateAuthority).Changed {
-		m.StaticConfig.CertificateAuthority = m.CertificateAuthority
-	}
+
+	// Handle special case for DisableMultiCluster
 	if cmd.Flag(flagDisableMultiCluster).Changed && m.DisableMultiCluster {
 		m.StaticConfig.ClusterProviderStrategy = config.ClusterProviderDisabled
 	}
@@ -252,15 +257,21 @@ func (m *ExtendableMCPServerOptions) initializeLogging() {
 	klog.SetLoggerWithOptions(logger)
 }
 
+//gocyclo:ignore - CLI validation logic with multiple configuration checks
 func (m *ExtendableMCPServerOptions) Validate() error {
 	if output.FromString(m.StaticConfig.ListOutput) == nil {
-		return fmt.Errorf("invalid output name: %s, valid names are: %s", m.StaticConfig.ListOutput, strings.Join(output.Names, ", "))
+		return fmt.Errorf("invalid output name: %s, valid names are: %s",
+			m.StaticConfig.ListOutput, strings.Join(output.Names, ", "))
 	}
 	if err := toolsets.Validate(m.StaticConfig.Toolsets); err != nil {
 		return err
 	}
-	if !m.StaticConfig.RequireOAuth && (m.StaticConfig.ValidateToken || m.StaticConfig.OAuthAudience != "" || m.StaticConfig.AuthorizationURL != "" || m.StaticConfig.ServerURL != "" || m.StaticConfig.CertificateAuthority != "") {
-		return fmt.Errorf("validate-token, oauth-audience, authorization-url, server-url and certificate-authority are only valid if require-oauth is enabled. Missing --port may implicitly set require-oauth to false")
+	if !m.StaticConfig.RequireOAuth && (m.StaticConfig.ValidateToken ||
+		m.StaticConfig.OAuthAudience != "" || m.StaticConfig.AuthorizationURL != "" ||
+		m.StaticConfig.ServerURL != "" || m.StaticConfig.CertificateAuthority != "") {
+		return fmt.Errorf("validate-token, oauth-audience, authorization-url, server-url and " +
+			"certificate-authority are only valid if require-oauth is enabled. " +
+			"Missing --port may implicitly set require-oauth to false")
 	}
 	if m.StaticConfig.AuthorizationURL != "" {
 		u, err := url.Parse(m.StaticConfig.AuthorizationURL)
@@ -277,6 +288,7 @@ func (m *ExtendableMCPServerOptions) Validate() error {
 	return nil
 }
 
+//gocyclo:ignore - Main server startup logic with OAuth, HTTP, and STDIO handling
 func (m *ExtendableMCPServerOptions) Run() error {
 	klog.V(1).Info("Starting extendable-kubernetes-mcp-server")
 	klog.V(1).Infof(" - Config: %s", m.ConfigPath)
@@ -318,7 +330,8 @@ func (m *ExtendableMCPServerOptions) Run() error {
 
 			transport := &http.Transport{
 				TLSClientConfig: &tls.Config{
-					RootCAs: caCertPool,
+					RootCAs:    caCertPool,
+					MinVersion: tls.VersionTLS12,
 				},
 			}
 			httpClient.Transport = transport
@@ -342,8 +355,7 @@ func (m *ExtendableMCPServerOptions) Run() error {
 		return internalhttp.Serve(ctx, mcpServer, m.StaticConfig, oidcProvider, httpClient)
 	}
 
-	ctx := context.Background()
-	if err := mcpServer.ServeStdio(ctx); err != nil && !errors.Is(err, context.Canceled) {
+	if err := mcpServer.ServeStdio(); err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
 

@@ -38,19 +38,19 @@ jobs:
           extension: .exe
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Checkout kubernetes-mcp-server dependency
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: containers/kubernetes-mcp-server
         path: kubernetes-mcp-server
         ref: main
 
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ env.GO_VERSION }}
 
@@ -80,7 +80,7 @@ jobs:
         fi
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: extendable-k8s-mcp-${{ matrix.os }}-${{ matrix.arch }}
         path: dist/extendable-k8s-mcp-${{ matrix.os }}-${{ matrix.arch }}.*
@@ -93,12 +93,12 @@ jobs:
       contents: write
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         fetch-depth: 0
 
     - name: Download all artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v6
       with:
         path: release-assets
         merge-multiple: true
@@ -130,7 +130,7 @@ jobs:
         echo "Download the appropriate binary for your platform from the assets below." >> CHANGELOG.md
 
     - name: Create Release
-      uses: ncipollo/release-action@v1
+      uses: ncipollo/release-action@v1.20.0
       with:
         tag: ${{ github.ref_name }}
         name: Release ${{ github.ref_name }}

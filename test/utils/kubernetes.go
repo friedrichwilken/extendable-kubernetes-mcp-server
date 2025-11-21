@@ -170,7 +170,7 @@ func PodListHandler(pods ...*v1.Pod) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(podList)
+		_ = json.NewEncoder(w).Encode(podList)
 	}
 }
 
@@ -194,6 +194,6 @@ func ServiceListHandler(services ...*v1.Service) http.HandlerFunc {
 		}
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(serviceList)
+		_ = json.NewEncoder(w).Encode(serviceList)
 	}
 }

@@ -23,11 +23,17 @@ import (
 func BenchmarkMCPInitialization(b *testing.B) {
 	serverPath := buildServerBinary(b)
 
+	// Create test kubeconfig for the server
+	tempDir := tempDir(b)
+	kubeconfigPath := createTestKubeconfig(b, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		// Start server
-		cmd := exec.Command(serverPath, "--log-level", "0")
+		cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 		stdin, stdout, stderr := startServerWithPipes(b, cmd)
 
 		// Initialize
@@ -64,8 +70,14 @@ func BenchmarkMCPInitialization(b *testing.B) {
 func BenchmarkToolsList(b *testing.B) {
 	serverPath := buildServerBinary(b)
 
+	// Create test kubeconfig for the server
+	tempDir := tempDir(b)
+	kubeconfigPath := createTestKubeconfig(b, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server once for all benchmark iterations
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	stdin, stdout, stderr := startServerWithPipes(b, cmd)
 	defer func() {
 		_ = cmd.Process.Kill()
@@ -148,8 +160,14 @@ func testConcurrentClientLoad(t *testing.T, serverPath string, numClients int) {
 	require.NoError(t, err)
 	port := fmt.Sprintf("%d", addr.Port)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start HTTP server
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "0")
 	err = cmd.Start()
 	require.NoError(t, err)
 
@@ -197,7 +215,7 @@ func testConcurrentClientLoad(t *testing.T, serverPath string, numClients int) {
 				resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
 
 				if err == nil {
-					resp.Body.Close()
+					_ = resp.Body.Close()
 					if resp.StatusCode >= 200 && resp.StatusCode < 500 {
 						successCount++
 					}
@@ -226,11 +244,9 @@ func testConcurrentClientLoad(t *testing.T, serverPath string, numClients int) {
 	// Collect and analyze results
 	totalRequests := 0
 	successfulClients := 0
-	clientDurations := make([]time.Duration, 0, numClients)
 
 	for result := range results {
 		totalRequests += result.requests
-		clientDurations = append(clientDurations, result.duration)
 		if result.success {
 			successfulClients++
 		}
@@ -270,8 +286,14 @@ func TestMemoryUsageStability(t *testing.T) {
 
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for the server
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	stdin, stdout, stderr := startServerWithPipes(t, cmd)
 	defer func() {
 		_ = cmd.Process.Kill()
@@ -355,7 +377,7 @@ func waitForHTTPServer(url string, timeout time.Duration) error {
 	for time.Now().Before(deadline) {
 		resp, err := client.Get(url)
 		if err == nil {
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil
 		}
 
