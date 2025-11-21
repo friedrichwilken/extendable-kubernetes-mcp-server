@@ -93,8 +93,8 @@ func TestServerStartupStdio(t *testing.T) {
 	// Create test kubeconfig for CI environment
 	tempDir := utils.TempDir(t)
 	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
-		"test-cluster": "https://test-cluster:6443",
-	}, "test-cluster")
+		"stdio-test-cluster": "https://test-cluster:6443",
+	}, "stdio-test-cluster")
 
 	// Start server in stdio mode
 	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
@@ -171,8 +171,8 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Create test kubeconfig for CI environment
 	tempDir := utils.TempDir(t)
 	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
-		"test-cluster": "https://test-cluster:6443",
-	}, "test-cluster")
+		"http-test-cluster": "https://test-cluster:6443",
+	}, "http-test-cluster")
 
 	// Start server in HTTP mode
 	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "0")
@@ -232,8 +232,8 @@ func TestServerGracefulShutdown(t *testing.T) {
 	// Create test kubeconfig for CI environment
 	tempDir := utils.TempDir(t)
 	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
-		"test-cluster": "https://test-cluster:6443",
-	}, "test-cluster")
+		"shutdown-test-cluster": "https://test-cluster:6443",
+	}, "shutdown-test-cluster")
 
 	// Start server in HTTP mode
 	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "1")
@@ -332,8 +332,8 @@ func TestServerEnvironmentHandling(t *testing.T) {
 	// Create test kubeconfig for CI environment
 	tempDir := utils.TempDir(t)
 	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
-		"test-cluster": "https://test-cluster:6443",
-	}, "test-cluster")
+		"env-test-cluster": "https://test-cluster:6443",
+	}, "env-test-cluster")
 
 	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 	cmd.Env = os.Environ()
