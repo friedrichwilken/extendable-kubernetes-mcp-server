@@ -78,7 +78,7 @@ users:`, currentContext)
 	}
 
 	kubeconfigPath := filepath.Join(tempDir, "kubeconfig")
-	err := os.WriteFile(kubeconfigPath, []byte(kubeconfigContent), 0644)
+	err := os.WriteFile(kubeconfigPath, []byte(kubeconfigContent), 0o644)
 	require.NoError(t, err, "Failed to create test kubeconfig")
 
 	return kubeconfigPath
