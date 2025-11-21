@@ -41,15 +41,64 @@ func findProjectRoot() (string, error) {
 	return "", fmt.Errorf("could not find project root (go.mod not found)")
 }
 
+// createTestKubeconfig creates a test kubeconfig file for CI environments
+func createTestKubeconfig(t *testing.T, tempDir string, clusters map[string]string, currentContext string) string {
+	kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:`
+
+	for name, server := range clusters {
+		kubeconfigContent += fmt.Sprintf(`
+- cluster:
+    server: %s
+    insecure-skip-tls-verify: true
+  name: %s`, server, name)
+	}
+
+	kubeconfigContent += `
+contexts:`
+
+	for name := range clusters {
+		kubeconfigContent += fmt.Sprintf(`
+- context:
+    cluster: %s
+    user: %s-user
+  name: %s`, name, name, name)
+	}
+
+	kubeconfigContent += fmt.Sprintf(`
+current-context: %s
+users:`, currentContext)
+
+	for name := range clusters {
+		kubeconfigContent += fmt.Sprintf(`
+- name: %s-user
+  user:
+    token: test-token`, name)
+	}
+
+	kubeconfigPath := filepath.Join(tempDir, "kubeconfig")
+	err := os.WriteFile(kubeconfigPath, []byte(kubeconfigContent), 0644)
+	require.NoError(t, err, "Failed to create test kubeconfig")
+
+	return kubeconfigPath
+}
+
 func TestServerStartupStdio(t *testing.T) {
 	utils.SkipIfShort(t)
 
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in stdio mode
-	cmd := exec.Command(serverPath)
-	cmd.Env = append(os.Environ(), "LOG_LEVEL=0") // Minimal logging for tests
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
+	cmd.Env = os.Environ()
 
 	stdin, err := cmd.StdinPipe()
 	require.NoError(t, err, "Failed to create stdin pipe")
@@ -119,8 +168,14 @@ func TestServerStartupHTTP(t *testing.T) {
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in HTTP mode
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "0")
 	cmd.Env = os.Environ()
 
 	stderr, err := cmd.StderrPipe()
@@ -174,8 +229,14 @@ func TestServerGracefulShutdown(t *testing.T) {
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in HTTP mode
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "1")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "1")
 
 	// Start the server
 	err = cmd.Start()
@@ -268,30 +329,14 @@ func TestServerEnvironmentHandling(t *testing.T) {
 	// Build the server binary for testing
 	serverPath := buildServerBinary(t)
 
-	// Test with KUBECONFIG environment variable
+	// Create test kubeconfig for CI environment
 	tempDir := utils.TempDir(t)
-	kubeconfigPath := utils.WriteTestFile(t, tempDir, "kubeconfig", `
-apiVersion: v1
-kind: Config
-clusters:
-- cluster:
-    server: https://localhost:6443
-    insecure-skip-tls-verify: true
-  name: test-cluster
-contexts:
-- context:
-    cluster: test-cluster
-    user: test-user
-  name: test-context
-current-context: test-context
-users:
-- name: test-user
-  user:
-    token: test-token
-`)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
 
-	cmd := exec.Command(serverPath, "--log-level", "0")
-	cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
+	cmd.Env = os.Environ()
 
 	// Start process
 	err := cmd.Start()

@@ -25,8 +25,14 @@ func TestMCPClientStdioIntegration(t *testing.T) {
 	// Build the server binary
 	serverPath := buildServerBinary(t)
 
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
 	// Start server in stdio mode
-	cmd := exec.Command(serverPath, "--log-level", "0")
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "0")
 
 	stdin, err := cmd.StdinPipe()
 	require.NoError(t, err, "Failed to create stdin pipe")
@@ -76,7 +82,14 @@ func TestMCPClientHTTPIntegration(t *testing.T) {
 
 	// Build and start server
 	serverPath := buildServerBinary(t)
-	cmd := exec.Command(serverPath, "--port", port, "--log-level", "0")
+
+	// Create test kubeconfig for CI environment
+	tempDir := utils.TempDir(t)
+	kubeconfigPath := createTestKubeconfig(t, tempDir, map[string]string{
+		"test-cluster": "https://test-cluster:6443",
+	}, "test-cluster")
+
+	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--port", port, "--log-level", "0")
 
 	err = cmd.Start()
 	require.NoError(t, err, "Failed to start HTTP server")
