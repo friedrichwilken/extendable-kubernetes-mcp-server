@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"testing"
@@ -17,6 +18,28 @@ import (
 
 	"github.com/friedrichwilken/extendable-kubernetes-mcp-server/test/utils"
 )
+
+// findProjectRoot finds the project root directory by looking for go.mod
+func findProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	for {
+		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			break
+		}
+		dir = parent
+	}
+
+	return "", fmt.Errorf("could not find project root (go.mod not found)")
+}
 
 func TestServerStartupStdio(t *testing.T) {
 	utils.SkipIfShort(t)
@@ -294,9 +317,13 @@ func buildServerBinary(t *testing.T) string {
 	tempDir := utils.TempDir(t)
 	serverPath := tempDir + "/test-server"
 
+	// Find project root dynamically
+	projectRoot, err := findProjectRoot()
+	require.NoError(t, err, "Failed to find project root")
+
 	// Build command
 	buildCmd := exec.Command("go", "build", "-o", serverPath, "./cmd")
-	buildCmd.Dir = "/Users/I549741/claude-playroom/extendable-kubernetes-mcp-server"
+	buildCmd.Dir = projectRoot
 
 	output, err := buildCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build server binary: %s", string(output))
