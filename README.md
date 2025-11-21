@@ -101,6 +101,10 @@ All kubernetes-mcp-server flags are supported:
 - `--disable-multi-cluster`: Disable multi-cluster tools
 - `--log-level`: Set log level (0-9)
 
+## Testing
+
+This project uses a comprehensive 3-layer testing strategy to ensure reliability and compatibility. For detailed information about the testing approach, see [TESTING.md](TESTING.md).
+
 ## Development
 
 ### Project Structure
