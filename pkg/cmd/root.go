@@ -29,15 +29,13 @@ import (
 
 	"github.com/containers/kubernetes-mcp-server/pkg/config"
 	internalhttp "github.com/containers/kubernetes-mcp-server/pkg/http"
-	"github.com/containers/kubernetes-mcp-server/pkg/mcp"
+	k8smcp "github.com/containers/kubernetes-mcp-server/pkg/mcp"
 	"github.com/containers/kubernetes-mcp-server/pkg/output"
 	"github.com/containers/kubernetes-mcp-server/pkg/toolsets"
 	"github.com/containers/kubernetes-mcp-server/pkg/version"
 
-	// Import base toolsets to register them
-	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/config"
-	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/core"
-	_ "github.com/containers/kubernetes-mcp-server/pkg/toolsets/helm"
+	// Import local mcp package to load toolsets via modules.go
+	_ "github.com/friedrichwilken/extendable-kubernetes-mcp-server/pkg/mcp"
 )
 
 var (
@@ -344,7 +342,7 @@ func (m *ExtendableMCPServerOptions) Run() error {
 		oidcProvider = provider
 	}
 
-	mcpServer, err := mcp.NewServer(mcp.Configuration{StaticConfig: m.StaticConfig})
+	mcpServer, err := k8smcp.NewServer(k8smcp.Configuration{StaticConfig: m.StaticConfig})
 	if err != nil {
 		return fmt.Errorf("failed to initialize MCP server: %w", err)
 	}
