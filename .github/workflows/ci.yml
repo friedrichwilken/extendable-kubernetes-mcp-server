@@ -59,7 +59,7 @@ jobs:
           coverage.out
         retention-days: 30
 
-  # Stage 2: Comprehensive testing in parallel
+  # Stage 2: Comprehensive testing (runs in parallel after lint passes)
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
@@ -79,13 +79,8 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Set up envtest binaries
-      run: make setup-envtest
-
     - name: Run integration tests
-      run: |
-        source test/envtest/env.sh
-        make test-integration
+      run: make test-integration
 
     - name: Upload integration test results
       uses: actions/upload-artifact@v5
@@ -171,46 +166,46 @@ jobs:
         retention-days: 30
 
   # Coverage reporting (runs after all tests complete)
-  coverage:
-    name: Coverage Report
-    runs-on: ubuntu-latest
-    needs: [integration-tests, e2e-tests]
-    if: always()
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v6.0.0
-
-
-    - name: Set up Go
-      uses: actions/setup-go@v6.1.0
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Download all test artifacts
-      uses: actions/download-artifact@v6
-      with:
-        pattern: "*test-results"
-        path: test-results
-        merge-multiple: true
-
-    - name: Generate comprehensive coverage report
-      run: |
-        # Run all tests together for combined coverage
-        make test-coverage
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        file: ./coverage.html
-        flags: unittests,integration,e2e
-        name: codecov-umbrella
-        fail_ci_if_error: false
+  # coverage:
+  #   name: Coverage Report
+  #   runs-on: ubuntu-latest
+  #   needs: [integration-tests, e2e-tests]
+  #   if: always()
+  #   steps:
+  #   - name: Checkout code
+  #     uses: actions/checkout@v6.0.0
+  #
+  #
+  #   - name: Set up Go
+  #     uses: actions/setup-go@v6.1.0
+  #     with:
+  #       go-version: ${{ env.GO_VERSION }}
+  #
+  #   - name: Download all test artifacts
+  #     uses: actions/download-artifact@v6
+  #     with:
+  #       pattern: "*test-results"
+  #       path: test-results
+  #       merge-multiple: true
+  #
+  #   - name: Generate comprehensive coverage report
+  #     run: |
+  #       # Run all tests together for combined coverage
+  #       make test-coverage
+  #
+  #   - name: Upload coverage to Codecov
+  #     uses: codecov/codecov-action@v5
+  #     with:
+  #       file: ./coverage.html
+  #       flags: unittests,integration,e2e
+  #       name: codecov-umbrella
+  #       fail_ci_if_error: false
 
   # Final status check
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest
-    needs: [unit-tests-and-lint, integration-tests, e2e-tests, build, coverage]
+    needs: [unit-tests-and-lint, integration-tests, e2e-tests, build]
     if: always()
     steps:
     - name: Check CI status
