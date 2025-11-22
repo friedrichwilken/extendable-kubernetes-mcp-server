@@ -14,49 +14,18 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
 	"github.com/friedrichwilken/extendable-kubernetes-mcp-server/test/utils"
 )
-
-var testEnv *envtest.Environment
-
-func TestMain(m *testing.M) {
-	// Note: envtest requires etcd and kube-apiserver binaries
-	// These are automatically downloaded by controller-runtime/pkg/envtest on first use
-	// Set KUBEBUILDER_ASSETS if you have them installed elsewhere
-
-	// For now, we'll skip envtest if the binaries aren't available
-	// In a full CI setup, these would be installed
-
-	// Run the tests
-	m.Run()
-}
 
 func TestKubernetesClientIntegration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping Kubernetes integration tests in short mode")
 	}
 
-	// Setup envtest environment
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths:     []string{},
-		ErrorIfCRDPathMissing: false,
-		BinaryAssetsDirectory: "", // Will use default or KUBEBUILDER_ASSETS
-	}
-
-	cfg, err := testEnv.Start()
-	if err != nil {
-		// Skip if envtest binaries are not available
-		t.Skipf("Skipping Kubernetes integration test - envtest not available: %v", err)
-	}
-
-	defer func() {
-		if testEnv != nil {
-			_ = testEnv.Stop()
-		}
-	}()
-
+	// Setup envtest environment with automatic binary discovery
+	env := utils.NewEnvtestEnvironment(t)
+	cfg := env.GetConfig()
 	require.NotNil(t, cfg, "Should have valid Kubernetes config")
 
 	// Test basic Kubernetes client functionality

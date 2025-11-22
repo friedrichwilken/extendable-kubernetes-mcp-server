@@ -22,7 +22,7 @@ LDFLAGS=-ldflags "-s -w"
 TEST_FLAGS=-v -race -coverprofile=coverage.out
 SHORT_TEST_FLAGS=-v -short -race
 
-.PHONY: all build clean test test-unit test-integration test-e2e test-coverage benchmark setup-envtest test-integration-envtest deps tidy fmt fmt-modern lint lint-fix run help code-quality pre-commit-check
+.PHONY: all build clean test test-unit test-integration test-e2e test-coverage benchmark setup-envtest deps tidy fmt fmt-modern lint lint-fix run help code-quality pre-commit-check
 
 # Default target
 all: clean deps build
@@ -42,7 +42,7 @@ clean:
 	@echo "Clean completed"
 
 # Run all tests
-test: lint
+test: setup-envtest lint
 	@echo "Running all tests..."
 	$(GOTEST) $(TEST_FLAGS) ./...
 
@@ -52,12 +52,12 @@ test-unit:
 	$(GOTEST) $(TEST_FLAGS) $(TEST_DIR)/unit/...
 
 # Run integration tests
-test-integration:
+test-integration: setup-envtest
 	@echo "Running integration tests..."
 	$(GOTEST) $(TEST_FLAGS) $(TEST_DIR)/integration/...
 
 # Run end-to-end tests
-test-e2e:
+test-e2e: setup-envtest
 	@echo "Running e2e tests..."
 	$(GOTEST) $(TEST_FLAGS) $(TEST_DIR)/e2e/...
 
@@ -71,16 +71,6 @@ setup-envtest:
 	@echo "Setting up envtest binaries..."
 	@chmod +x scripts/setup-envtest.sh
 	@./scripts/setup-envtest.sh
-
-# Run integration tests with envtest (requires setup-envtest)
-test-integration-envtest:
-	@echo "Running integration tests with envtest..."
-	@if [ -f test/envtest/env.sh ]; then \
-		source test/envtest/env.sh && $(GOTEST) $(TEST_FLAGS) $(TEST_DIR)/integration/...; \
-	else \
-		echo "Envtest not setup. Run 'make setup-envtest' first."; \
-		exit 1; \
-	fi
 
 # Run short tests (for development)
 test-short:
