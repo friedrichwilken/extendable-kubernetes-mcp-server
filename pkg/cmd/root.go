@@ -28,14 +28,12 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/containers/kubernetes-mcp-server/pkg/config"
-	internalhttp "github.com/containers/kubernetes-mcp-server/pkg/http"
 	k8smcp "github.com/containers/kubernetes-mcp-server/pkg/mcp"
 	"github.com/containers/kubernetes-mcp-server/pkg/output"
 	"github.com/containers/kubernetes-mcp-server/pkg/toolsets"
 	"github.com/containers/kubernetes-mcp-server/pkg/version"
-
-	// Import local mcp package to load toolsets via modules.go
-	_ "github.com/friedrichwilken/extendable-kubernetes-mcp-server/pkg/mcp"
+	localhttp "github.com/friedrichwilken/extendable-kubernetes-mcp-server/pkg/http"
+	localmcp "github.com/friedrichwilken/extendable-kubernetes-mcp-server/pkg/mcp"
 )
 
 var (
@@ -342,14 +340,14 @@ func (m *ExtendableMCPServerOptions) Run() error {
 		oidcProvider = provider
 	}
 
-	mcpServer, err := k8smcp.NewServer(k8smcp.Configuration{StaticConfig: m.StaticConfig})
+	mcpServer, err := localmcp.NewExtendableServer(k8smcp.Configuration{StaticConfig: m.StaticConfig})
 	if err != nil {
 		return fmt.Errorf("failed to initialize MCP server: %w", err)
 	}
 	defer mcpServer.Close()
 
 	if m.StaticConfig.Port != "" {
-		return internalhttp.Serve(context.Background(), mcpServer, m.StaticConfig, oidcProvider, httpClient)
+		return localhttp.Serve(context.Background(), mcpServer, m.StaticConfig, oidcProvider, httpClient)
 	}
 
 	if err := mcpServer.ServeStdio(); err != nil && !errors.Is(err, context.Canceled) {
