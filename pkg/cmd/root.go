@@ -348,12 +348,13 @@ func (m *ExtendableMCPServerOptions) Run() error {
 	}
 	defer mcpServer.Close()
 
+	ctx := context.Background()
+
 	if m.StaticConfig.Port != "" {
-		ctx := context.Background()
 		return internalhttp.Serve(ctx, mcpServer, m.StaticConfig, oidcProvider, httpClient)
 	}
 
-	if err := mcpServer.ServeStdio(); err != nil && !errors.Is(err, context.Canceled) {
+	if err := mcpServer.ServeStdio(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		return err
 	}
 
