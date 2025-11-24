@@ -227,9 +227,9 @@ func (s *Server) ServeHTTP() *mcp.StreamableHTTPHandler {
 	return mcp.NewStreamableHTTPHandler(func(request *http.Request) *mcp.Server {
 		return s.server
 	}, &mcp.StreamableHTTPOptions{
-		// For clients to be able to listen to tool changes, we need to set the server stateful
-		// https://modelcontextprotocol.io/specification/2025-03-26/basic/transports#listening-for-messages-from-the-server
-		Stateless: false,
+		// Use stateless mode for REST-like HTTP usage without session management
+		// Clients can still listen to tool changes via SSE endpoint
+		Stateless: true,
 	})
 }
 

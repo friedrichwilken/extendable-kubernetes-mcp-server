@@ -51,13 +51,13 @@ func toolScopedAuthorizationMiddleware(next mcp.MethodHandler) mcp.MethodHandler
 		scopes, ok := ctx.Value(TokenScopesContextKey).([]string)
 		if !ok {
 			return NewTextResult("", fmt.Errorf(
-			"authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but no scope is available",
-			method, method)), nil
+				"authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but no scope is available",
+				method, method)), nil
 		}
 		if !slices.Contains(scopes, "mcp:"+method) && !slices.Contains(scopes, method) {
 			return NewTextResult("", fmt.Errorf(
-			"authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but only scopes %s are available",
-			method, method, scopes)), nil
+				"authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but only scopes %s are available",
+				method, method, scopes)), nil
 		}
 		return next(ctx, method, req)
 	}
