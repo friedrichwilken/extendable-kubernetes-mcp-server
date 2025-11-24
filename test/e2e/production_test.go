@@ -464,7 +464,14 @@ func simulateInitialization(client *http.Client, serverURL string, requestID int
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
@@ -486,7 +493,14 @@ func simulateToolsDiscovery(client *http.Client, serverURL string, requestID int
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
@@ -511,7 +525,14 @@ func simulateReadOnlyToolCall(client *http.Client, serverURL string, requestID i
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
@@ -534,7 +555,14 @@ func simulateInvalidRequest(client *http.Client, serverURL string, requestID int
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
