@@ -336,7 +336,7 @@ func testEdgeCases(t *testing.T, serverURL string) {
 	}
 }
 
-// TestLongRunningSession simulates a long-running MCP session
+// TestLongRunningSession simulates a long-running MCP session over HTTP/SSE
 //
 //gocyclo:ignore - Long-running test function with multiple phases and error handling
 func TestLongRunningSession(t *testing.T) {
@@ -352,27 +352,32 @@ func TestLongRunningSession(t *testing.T) {
 		"test-cluster": "https://test-cluster:6443",
 	}, "test-cluster")
 
-	// Start server in stdio mode for long-running test
-	cmd := exec.Command(serverPath, "--kubeconfig", kubeconfigPath, "--log-level", "1")
-	stdin, stdout, stderr := startServerWithPipes(t, cmd)
+	// Use HTTP transport for long-running test (HTTP tests are reliable at 100% success)
+	addr, err := utils.RandomPortAddress()
+	require.NoError(t, err)
+	port := fmt.Sprintf("%d", addr.Port)
+
+	// Start server with production-like settings
+	cmd := exec.Command(serverPath,
+		"--kubeconfig", kubeconfigPath,
+		"--port", port,
+		"--log-level", "1",
+		"--read-only",
+		"--toolsets", "core,config,helm")
+
+	err = cmd.Start()
+	require.NoError(t, err)
+
 	defer func() {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
-		_ = stdin.Close()
-		_ = stdout.Close()
-		_ = stderr.Close()
 	}()
 
-	// Initialize session
-	initRequest := utils.McpInitRequest()
-	err := sendJSONRPCRequest(t, stdin, initRequest)
+	serverURL := fmt.Sprintf("http://localhost:%s", port)
+	err = waitForHTTPServer(serverURL, 15*time.Second)
 	require.NoError(t, err)
 
-	initResponse := readJSONRPCResponse(t, stdout, 10*time.Second)
-	if initResponse == "" {
-		t.Skip("Server not responding - skipping long-running test")
-		return
-	}
+	client := &http.Client{Timeout: 30 * time.Second}
 
 	// Run session for extended period with various operations
 	sessionDuration := 2 * time.Minute
@@ -382,54 +387,24 @@ func TestLongRunningSession(t *testing.T) {
 	requestCount := 0
 	successCount := 0
 
-	t.Logf("Starting long-running session for %v...", sessionDuration)
+	t.Logf("Starting long-running HTTP session for %v...", sessionDuration)
 
 	for time.Now().Before(endTime) {
 		requestCount++
 
 		// Alternate between different operations
-		var request map[string]any
+		var success bool
 		switch requestCount % 3 {
 		case 0:
-			request = map[string]any{
-				"jsonrpc": "2.0",
-				"id":      requestCount,
-				"method":  "tools/list",
-				"params":  map[string]any{},
-			}
+			success = simulateToolsDiscovery(client, serverURL, requestCount)
 		case 1:
-			request = map[string]any{
-				"jsonrpc": "2.0",
-				"id":      requestCount,
-				"method":  "tools/call",
-				"params": map[string]any{
-					"name":      "configuration_view",
-					"arguments": map[string]any{},
-				},
-			}
+			success = simulateReadOnlyToolCall(client, serverURL, requestCount)
 		case 2:
-			// Send a notification (no response expected)
-			request = map[string]any{
-				"jsonrpc": "2.0",
-				"method":  "notifications/ping",
-				"params":  map[string]any{},
-			}
+			success = simulateInitialization(client, serverURL, requestCount)
 		}
 
-		err := sendJSONRPCRequest(t, stdin, request)
-		if err != nil {
-			t.Logf("Request %d failed to send: %v", requestCount, err)
-			continue
-		}
-
-		// Read response (if expected)
-		if requestCount%3 != 2 { // Not a notification
-			response := readJSONRPCResponse(t, stdout, 10*time.Second)
-			if response != "" {
-				successCount++
-			}
-		} else {
-			successCount++ // Notifications don't have responses
+		if success {
+			successCount++
 		}
 
 		// Log progress periodically
@@ -449,7 +424,7 @@ func TestLongRunningSession(t *testing.T) {
 	t.Logf("  Success Rate: %.1f%%", successRate*100)
 
 	// Session should maintain stability over time
-	assert.True(t, successRate >= 0.80, "Long-running session should maintain at least 80%% success rate")
+	assert.True(t, successRate >= 0.90, "Long-running session should maintain at least 90%% success rate")
 	assert.True(t, requestCount >= 20, "Should have completed reasonable number of requests")
 }
 
@@ -464,7 +439,14 @@ func simulateInitialization(client *http.Client, serverURL string, requestID int
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
@@ -486,7 +468,14 @@ func simulateToolsDiscovery(client *http.Client, serverURL string, requestID int
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
@@ -511,7 +500,14 @@ func simulateReadOnlyToolCall(client *http.Client, serverURL string, requestID i
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
@@ -534,7 +530,14 @@ func simulateInvalidRequest(client *http.Client, serverURL string, requestID int
 		return false
 	}
 
-	resp, err := client.Post(serverURL+"/mcp", "application/json", strings.NewReader(string(requestBytes)))
+	req, err := http.NewRequest("POST", serverURL+"/mcp", strings.NewReader(string(requestBytes)))
+	if err != nil {
+		return false
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return false
 	}
