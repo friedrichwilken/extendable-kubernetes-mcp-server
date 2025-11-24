@@ -32,8 +32,7 @@ func authHeaderPropagationMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 
 func toolCallLoggingMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-		switch params := req.GetParams().(type) {
-		case *mcp.CallToolParamsRaw:
+		if params, ok := req.GetParams().(*mcp.CallToolParamsRaw); ok {
 			toolCallRequest, _ := GoSdkToolCallParamsToToolCallRequest(params)
 			klog.V(5).Infof("mcp tool call: %s(%v)", toolCallRequest.Name, toolCallRequest.GetArguments())
 			if req.GetExtra() != nil && req.GetExtra().Header != nil {
@@ -51,10 +50,14 @@ func toolScopedAuthorizationMiddleware(next mcp.MethodHandler) mcp.MethodHandler
 	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
 		scopes, ok := ctx.Value(TokenScopesContextKey).([]string)
 		if !ok {
-			return NewTextResult("", fmt.Errorf("authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but no scope is available", method, method)), nil
+			return NewTextResult("", fmt.Errorf(
+			"authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but no scope is available",
+			method, method)), nil
 		}
 		if !slices.Contains(scopes, "mcp:"+method) && !slices.Contains(scopes, method) {
-			return NewTextResult("", fmt.Errorf("authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but only scopes %s are available", method, method, scopes)), nil
+			return NewTextResult("", fmt.Errorf(
+			"authorization failed: Access denied: Tool '%s' requires scope 'mcp:%s' but only scopes %s are available",
+			method, method, scopes)), nil
 		}
 		return next(ctx, method, req)
 	}

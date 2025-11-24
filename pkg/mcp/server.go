@@ -46,7 +46,7 @@ func (c *Configuration) ListOutput() output.Output {
 	return c.listOutput
 }
 
-func (c *Configuration) isToolApplicable(tool api.ServerTool) bool {
+func (c *Configuration) isToolApplicable(tool *api.ServerTool) bool {
 	if c.ReadOnly && !ptr.Deref(tool.Tool.Annotations.ReadOnlyHint, false) {
 		return false
 	}
@@ -180,7 +180,7 @@ func (s *Server) reloadKubernetesClusterProvider() error {
 	for _, toolset := range s.configuration.Toolsets() {
 		for _, tool := range toolset.GetTools(p) {
 			tool := mutator(tool)
-			if !filter(tool) {
+			if !filter(&tool) {
 				continue
 			}
 
@@ -199,10 +199,10 @@ func (s *Server) reloadKubernetesClusterProvider() error {
 	}
 	s.server.RemoveTools(toolsToRemove...)
 
-	for _, tool := range applicableTools {
-		goSdkTool, goSdkToolHandler, err := ServerToolToGoSdkTool(s, tool)
+	for i := range applicableTools {
+		goSdkTool, goSdkToolHandler, err := ServerToolToGoSdkTool(s, &applicableTools[i])
 		if err != nil {
-			return fmt.Errorf("failed to convert tool %s: %v", tool.Tool.Name, err)
+			return fmt.Errorf("failed to convert tool %s: %v", applicableTools[i].Tool.Name, err)
 		}
 		s.server.AddTool(goSdkTool, goSdkToolHandler)
 	}
