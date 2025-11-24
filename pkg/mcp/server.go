@@ -227,8 +227,9 @@ func (s *Server) ServeHTTP() *mcp.StreamableHTTPHandler {
 	return mcp.NewStreamableHTTPHandler(func(request *http.Request) *mcp.Server {
 		return s.server
 	}, &mcp.StreamableHTTPOptions{
-		// Use stateless mode for REST-like HTTP usage without session management
-		// Clients can still listen to tool changes via SSE endpoint
+		// Stateless mode is appropriate for request/response patterns where the client
+		// doesn't need to receive server-initiated notifications.
+		// For clients that need to listen to tool changes, use SSE transport instead.
 		Stateless: true,
 	})
 }
