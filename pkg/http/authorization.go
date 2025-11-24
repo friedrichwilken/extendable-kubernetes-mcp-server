@@ -307,12 +307,20 @@ func (c *JWTClaims) ValidateWithKubernetesApi(ctx context.Context, audience, clu
 	return nil
 }
 
+// ParseJWTClaims extracts JWT claims from a token without verifying the signature.
+// This is intentional: signature verification is deferred to later stages in the validation flow:
+//   - ValidateWithProvider (if OIDC provider is configured)
+//   - ValidateWithKubernetesApi (if ValidateToken is enabled)
+//
+// Operators must configure at least one of these verification methods for production use.
+// See AuthorizationMiddleware documentation for details on the validation flow.
 func ParseJWTClaims(token string) (*JWTClaims, error) {
 	tkn, err := jwt.ParseSigned(token, allSignatureAlgorithms)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse JWT token: %w", err)
 	}
 	claims := &JWTClaims{}
+	// nosemgrep: go.lang.security.audit.crypto.use_of_weak_crypto.use-of-unverified-jwt-claims
 	err = tkn.UnsafeClaimsWithoutVerification(claims)
 	claims.Token = token
 	return claims, err
