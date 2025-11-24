@@ -28,7 +28,6 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"github.com/containers/kubernetes-mcp-server/pkg/config"
-	k8smcp "github.com/containers/kubernetes-mcp-server/pkg/mcp"
 	"github.com/containers/kubernetes-mcp-server/pkg/output"
 	"github.com/containers/kubernetes-mcp-server/pkg/toolsets"
 	"github.com/containers/kubernetes-mcp-server/pkg/version"
@@ -340,7 +339,7 @@ func (m *ExtendableMCPServerOptions) Run() error {
 		oidcProvider = provider
 	}
 
-	mcpServer, err := localmcp.NewExtendableServer(k8smcp.Configuration{StaticConfig: m.StaticConfig})
+	mcpServer, err := localmcp.NewServer(localmcp.Configuration{StaticConfig: m.StaticConfig})
 	if err != nil {
 		return fmt.Errorf("failed to initialize MCP server: %w", err)
 	}

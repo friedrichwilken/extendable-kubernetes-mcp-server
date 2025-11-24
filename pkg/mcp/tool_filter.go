@@ -6,10 +6,10 @@ import (
 )
 
 // ToolFilter is a function that takes a ServerTool and returns a boolean indicating whether to include the tool
-type ToolFilter func(tool *api.ServerTool) bool
+type ToolFilter func(tool api.ServerTool) bool
 
 func CompositeFilter(filters ...ToolFilter) ToolFilter {
-	return func(tool *api.ServerTool) bool {
+	return func(tool api.ServerTool) bool {
 		for _, f := range filters {
 			if !f(tool) {
 				return false
@@ -21,7 +21,7 @@ func CompositeFilter(filters ...ToolFilter) ToolFilter {
 }
 
 func ShouldIncludeTargetListTool(targetName string, targets []string) ToolFilter {
-	return func(tool *api.ServerTool) bool {
+	return func(tool api.ServerTool) bool {
 		if !tool.IsTargetListProvider() {
 			return true
 		}

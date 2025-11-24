@@ -11,7 +11,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func ServerToolToGoSdkTool(s *Server, tool *api.ServerTool) (*mcp.Tool, mcp.ToolHandler, error) {
+func ServerToolToGoSdkTool(s *Server, tool api.ServerTool) (*mcp.Tool, mcp.ToolHandler, error) {
 	goSdkTool := &mcp.Tool{
 		Name:        tool.Tool.Name,
 		Description: tool.Tool.Description,
@@ -95,12 +95,12 @@ func GoSdkToolCallParamsToToolCallRequest(toolCallParams *mcp.CallToolParamsRaw)
 	}, nil
 }
 
-func (t *ToolCallRequest) GetArguments() map[string]any {
-	return t.arguments
+func (ToolCallRequest *ToolCallRequest) GetArguments() map[string]any {
+	return ToolCallRequest.arguments
 }
 
-func (t *ToolCallRequest) GetString(key, defaultValue string) string {
-	if value, ok := t.arguments[key]; ok {
+func (ToolCallRequest *ToolCallRequest) GetString(key, defaultValue string) string {
+	if value, ok := ToolCallRequest.arguments[key]; ok {
 		if strValue, ok := value.(string); ok {
 			return strValue
 		}
