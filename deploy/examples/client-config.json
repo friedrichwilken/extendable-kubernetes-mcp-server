@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "ek8sms-portforward": {
+      "command": "kubectl",
+      "args": [
+        "port-forward",
+        "service/ek8sms-http-mcp",
+        "3000:3000",
+        "-n",
+        "default"
+      ],
+      "env": {},
+      "description": "ek8sms via kubectl port-forward (HTTP transport)"
+    },
+    "ek8sms-http": {
+      "url": "http://localhost:3000/mcp",
+      "transport": "http",
+      "description": "ek8sms via HTTP transport after port-forward"
+    }
+  },
+  "examples": {
+    "note": "These are example configurations for connecting to ek8sms deployed via kmcp. All deployments use HTTP transport.",
+    "local-portforward": {
+      "description": "Connect via kubectl port-forward to HTTP endpoint",
+      "command": "kubectl port-forward service/ek8sms-http-mcp 3000:3000 -n default",
+      "url": "http://localhost:3000/mcp",
+      "transport": "http"
+    },
+    "loadbalancer": {
+      "description": "Connect via HTTP transport through LoadBalancer service (if configured)",
+      "url": "http://EXTERNAL_IP:3000/mcp",
+      "transport": "http"
+    }
+  }
+}

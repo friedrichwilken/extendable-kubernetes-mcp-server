@@ -1,0 +1,60 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: ek8sms
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ek8sms
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kubernetes-mcp
+spec:
+  deployment:
+    # Container image for ek8sms
+    # Update this to your registry/tag as needed
+    image: ghcr.io/friedrichwilken/extendable-kubernetes-mcp-server:latest
+
+    # Server listening port
+    port: 3000
+
+    # Command to start ek8sms
+    cmd: /app/extendable-k8s-mcp
+
+    # Arguments - HTTP mode required for Kubernetes deployment
+    args:
+      - --port=3000
+
+    # Environment variables
+    env:
+      LOG_LEVEL: "info"
+      TRANSPORT: "http"
+      # Use in-cluster Kubernetes configuration by default
+      # Remove or comment out to use mounted kubeconfig
+      # KUBECONFIG: /etc/kubernetes/config
+
+    # Resource limits and requests (optional)
+    # Uncomment and adjust based on your needs
+    # resources:
+    #   requests:
+    #     memory: "128Mi"
+    #     cpu: "100m"
+    #   limits:
+    #     memory: "512Mi"
+    #     cpu: "500m"
+
+  # Transport configuration
+  # HTTP is REQUIRED for Kubernetes deployments
+  # stdio doesn't work in containers (no stdin/stdout connection)
+  transportType: http
+
+  httpTransport:
+    targetPort: 3000
+    targetPath: /mcp
+
+  # Optional: Configure ServiceAccount for RBAC
+  # The ek8sms needs cluster-wide read/write permissions
+  # Deploy rbac.yaml first to create the ServiceAccount and bindings
+  # serviceAccount:
+  #   name: ek8sms
+  #   annotations: {}
+  #   labels:
+  #     app.kubernetes.io/name: ek8sms

@@ -1,0 +1,55 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# GitHub
+.github/
+
+# Build artifacts
+build/
+dist/
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files and artifacts
+test/
+*_test.go
+*.test
+*.out
+coverage.txt
+coverage.html
+.envtest/
+
+# Documentation
+*.md
+docs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+
+# Dependencies (downloaded during build)
+vendor/
+
+# Container artifacts
+*.tar
+*.gz
+*.zip
+
+# Go specific
+go.work
+go.work.sum
