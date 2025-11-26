@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ek8sms
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ek8sms
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kubernetes-mcp
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: ek8sms
+  labels:
+    app.kubernetes.io/name: ek8sms
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kubernetes-mcp
+rules:
+  # Core resource access
+  - apiGroups: [""]
+    resources:
+      - pods
+      - services
+      - configmaps
+      - secrets
+      - namespaces
+      - nodes
+      - persistentvolumes
+      - persistentvolumeclaims
+      - serviceaccounts
+      - endpoints
+      - events
+      - resourcequotas
+      - limitranges
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Pod logs and exec
+  - apiGroups: [""]
+    resources:
+      - pods/log
+      - pods/status
+      - pods/exec
+    verbs: ["get", "list", "create"]
+
+  # Apps resources
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Batch resources
+  - apiGroups: ["batch"]
+    resources:
+      - jobs
+      - cronjobs
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Networking resources
+  - apiGroups: ["networking.k8s.io"]
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # RBAC resources (read-only for safety)
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources:
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+    verbs: ["get", "list", "watch"]
+
+  # Storage resources
+  - apiGroups: ["storage.k8s.io"]
+    resources:
+      - storageclasses
+      - volumeattachments
+    verbs: ["get", "list", "watch"]
+
+  # Custom Resource Definitions
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources:
+      - customresourcedefinitions
+    verbs: ["get", "list", "watch"]
+
+  # Allow access to all custom resources (for toolgen-generated toolsets)
+  # This is a broad permission - restrict in production environments
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: ek8sms
+  labels:
+    app.kubernetes.io/name: ek8sms
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kubernetes-mcp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ek8sms
+subjects:
+  - kind: ServiceAccount
+    name: ek8sms
+    namespace: default

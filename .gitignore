@@ -94,3 +94,8 @@ test/envtest/
 # Documentation build artifacts
 docs/_build/
 site/
+
+# Deployment artifacts
+deploy/build/
+deploy/*.tar.gz
+deploy/*.zip

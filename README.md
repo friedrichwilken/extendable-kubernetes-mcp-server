@@ -101,6 +101,70 @@ All kubernetes-mcp-server flags are supported:
 - `--disable-multi-cluster`: Disable multi-cluster tools
 - `--log-level`: Set log level (0-9)
 
+## Deployment
+
+### Kubernetes Deployment via kmcp
+
+ek8sms can be deployed to Kubernetes using [kmcp](https://github.com/kagent-dev/kmcp), a CNCF sandbox project for managing MCP servers in Kubernetes.
+
+#### Quick Start
+
+```bash
+# Install kmcp controller
+kubectl apply -f https://github.com/kagent-dev/kmcp/releases/latest/download/install.yaml
+
+# Deploy ek8sms
+make deploy
+
+# Verify deployment
+kubectl get mcpserver ek8sms
+kubectl get pods -l app.kubernetes.io/name=ek8sms
+```
+
+#### Container Images
+
+Pre-built multi-platform container images are available:
+
+```
+ghcr.io/friedrichwilken/extendable-kubernetes-mcp-server:latest
+ghcr.io/friedrichwilken/extendable-kubernetes-mcp-server:v1.0.0
+```
+
+**Supported Platforms:**
+- `linux/amd64`
+- `linux/arm64`
+
+#### Deployment Variants
+
+- **base** - HTTP transport, single replica, in-cluster access
+- **multicluster** - Manage multiple Kubernetes clusters via kubeconfig
+- **production** - HA setup with resource limits, autoscaling, and health checks
+
+```bash
+# Deploy specific variant
+make deploy-variant VARIANT=production
+
+# Test deployment health
+make deploy-test
+
+# Clean up
+make deploy-cleanup
+```
+
+For detailed deployment instructions, see [deploy/README.md](deploy/README.md).
+
+### Transport Modes
+
+**Local Development:**
+- **stdio** (default) - `./build/extendable-k8s-mcp`
+- Direct process communication
+
+**Kubernetes Deployments:**
+- **HTTP** (required) - `./build/extendable-k8s-mcp --port 3000`
+- HTTP/SSE endpoints at `/mcp`
+
+**Important:** Kubernetes deployments MUST use HTTP transport. stdio doesn't work in containers because there's no stdin/stdout connection to the MCP client. All kmcp manifests are pre-configured for HTTP mode.
+
 ## Testing
 
 This project uses a comprehensive 3-layer testing strategy to ensure reliability and compatibility. For detailed information about the testing approach, see [TESTING.md](TESTING.md).

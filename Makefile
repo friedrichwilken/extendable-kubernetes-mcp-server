@@ -22,7 +22,7 @@ LDFLAGS=-ldflags "-s -w"
 TEST_FLAGS=-v -race -coverprofile=coverage.out
 SHORT_TEST_FLAGS=-v -short -race
 
-.PHONY: all build clean test test-unit test-integration test-e2e test-coverage benchmark setup-envtest deps tidy fmt fmt-modern lint lint-fix run help code-quality pre-commit-check
+.PHONY: all build clean test test-unit test-integration test-e2e test-coverage benchmark setup-envtest deps tidy fmt fmt-modern lint lint-fix run help code-quality pre-commit-check docker-build docker-push docker-buildx deploy deploy-variant deploy-test deploy-cleanup
 
 # Default target
 all: clean deps build
@@ -165,7 +165,7 @@ help:
 	@echo "  deps           - Download dependencies"
 	@echo "  tidy           - Tidy modules"
 	@echo "  fmt            - Format code"
-	@echo "  fmt-modern     - Modern Go formatting (interface{} -> any)"
+	@echo "  fmt-modern     - Modern Go formatting"
 	@echo "  lint           - Run golangci-lint"
 	@echo "  lint-fix       - Run golangci-lint with automatic fixes"
 	@echo "  code-quality   - Run all formatting and linting (tidy, fmt, fmt-modern, lint-fix)"
@@ -173,6 +173,17 @@ help:
 	@echo "  run            - Build and run server in stdio mode"
 	@echo "  run-http       - Build and run server in HTTP mode"
 	@echo "  dev-setup      - Setup development environment"
+	@echo ""
+	@echo "Docker targets:"
+	@echo "  docker-build   - Build Docker image"
+	@echo "  docker-push    - Build and push Docker image"
+	@echo "  docker-buildx  - Build and push multi-platform images (amd64, arm64)"
+	@echo ""
+	@echo "Deployment targets:"
+	@echo "  deploy         - Deploy base variant to Kubernetes via kmcp"
+	@echo "  deploy-variant - Deploy specific variant (VARIANT=multicluster|production)"
+	@echo "  deploy-test    - Test deployment health"
+	@echo "  deploy-cleanup - Clean up deployed resources"
 	@echo ""
 	@echo "Other targets:"
 	@echo "  install        - Install dependencies and build"
@@ -192,3 +203,48 @@ dev-setup: deps tidy fmt
 
 dev-test: test-short
 	@echo "Development tests completed"
+
+# Docker configuration
+DOCKER_REGISTRY ?= ghcr.io
+DOCKER_REPO ?= friedrichwilken/extendable-kubernetes-mcp-server
+DOCKER_TAG ?= latest
+DOCKER_IMAGE = $(DOCKER_REGISTRY)/$(DOCKER_REPO):$(DOCKER_TAG)
+DEPLOY_DIR = ./deploy
+
+# Docker targets
+docker-build:
+	@echo "Building Docker image: $(DOCKER_IMAGE)"
+	docker build -f $(DEPLOY_DIR)/Dockerfile -t $(DOCKER_IMAGE) .
+
+docker-push: docker-build
+	@echo "Pushing Docker image: $(DOCKER_IMAGE)"
+	docker push $(DOCKER_IMAGE)
+
+docker-buildx:
+	@echo "Building multi-platform images: $(DOCKER_IMAGE)"
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-f $(DEPLOY_DIR)/Dockerfile \
+		-t $(DOCKER_IMAGE) \
+		--push .
+
+# Deployment targets
+deploy:
+	@echo "Deploying base variant to Kubernetes..."
+	@chmod +x $(DEPLOY_DIR)/scripts/deploy.sh
+	@$(DEPLOY_DIR)/scripts/deploy.sh base
+
+deploy-variant:
+	@echo "Deploying $(VARIANT) variant to Kubernetes..."
+	@chmod +x $(DEPLOY_DIR)/scripts/deploy.sh
+	@$(DEPLOY_DIR)/scripts/deploy.sh $(VARIANT)
+
+deploy-test:
+	@echo "Testing deployment..."
+	@chmod +x $(DEPLOY_DIR)/scripts/test.sh
+	@$(DEPLOY_DIR)/scripts/test.sh
+
+deploy-cleanup:
+	@echo "Cleaning up deployment..."
+	@chmod +x $(DEPLOY_DIR)/scripts/cleanup.sh
+	@$(DEPLOY_DIR)/scripts/cleanup.sh

@@ -1,0 +1,135 @@
+apiVersion: kagent.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: ek8sms-production
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ek8sms
+    app.kubernetes.io/component: mcp-server
+    app.kubernetes.io/part-of: kubernetes-mcp
+    app.kubernetes.io/environment: production
+    app.kubernetes.io/version: "1.0"
+spec:
+  deployment:
+    image: ghcr.io/friedrichwilken/extendable-kubernetes-mcp-server:v1.0.0
+    port: 3000
+    cmd: /app/extendable-k8s-mcp
+
+    args:
+      - --port=3000
+
+    env:
+      LOG_LEVEL: "warn"
+      TRANSPORT: "http"
+      # Enable structured logging for production
+      LOG_FORMAT: "json"
+      # Performance tuning
+      GO_MAX_PROCS: "4"
+      GOMAXPROCS: "4"
+
+    # Production resource configuration
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "200m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+
+    # Health check configuration
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 3000
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 3
+
+    # Security context
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      readOnlyRootFilesystem: true
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+          - ALL
+
+    # Production secrets
+    secretRefs:
+      - name: ek8sms-production-secrets
+
+  # HTTP transport for production
+  transportType: http
+
+  httpTransport:
+    targetPort: 3000
+    targetPath: /mcp
+
+  # ServiceAccount with production annotations
+  serviceAccount:
+    name: ek8sms-production
+    annotations:
+      # AWS IRSA example - replace with your IAM role
+      # eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/ek8sms-production"
+      # GCP Workload Identity example
+      # iam.gke.io/gcp-service-account: "ek8sms@project-id.iam.gserviceaccount.com"
+    labels:
+      app.kubernetes.io/name: ek8sms
+      app.kubernetes.io/environment: production
+      team: platform
+      component: mcp-server
+
+  # Deployment strategy
+  replicas: 2
+
+  # Pod disruption budget
+  podDisruptionBudget:
+    minAvailable: 1
+
+  # Horizontal Pod Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+
+---
+# Production ServiceAccount with restricted permissions
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ek8sms-production
+  namespace: default
+  labels:
+    app.kubernetes.io/name: ek8sms
+    app.kubernetes.io/environment: production
+
+---
+# Production secrets placeholder
+# Create this secret with your production credentials:
+#
+# kubectl create secret generic ek8sms-production-secrets \
+#   --from-literal=api-key=your-production-api-key \
+#   --from-file=kubeconfig=/path/to/production/kubeconfig
+#
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ek8sms-production-secrets
+  namespace: default
+type: Opaque
+# data:
+#   api-key: <base64-encoded-key>
+#   kubeconfig: <base64-encoded-config>
